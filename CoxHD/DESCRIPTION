@@ -1,0 +1,20 @@
+Package: CoxHD
+Type: Package
+Title: High-dimensional extensions of the Cox proportional hazards model
+Version: 0.0.1
+Date: 2014-04-29
+Author: Moritz Gerstung
+Maintainer: <mg14@sanger.ac.uk>
+Description: This package includes two extension of the Cox proportional
+    hazards model: A Random effects model and complementary pairs stability
+    selection.
+Depends:
+    glmnet,
+    survival
+License:
+	GPL-3
+Collate:
+    'CoxCPSS.R'
+    'CoxRFX.R'
+    'functions.R'
+    'r_concave_tail.R'

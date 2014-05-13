@@ -55,21 +55,24 @@ GetPairs <- function(names, scope){
 			})
 }
 
-TestInteractions <- function(data, survival, pairs, whichMain = colnames(X), mc.cores=1){
+TestInteractions <- function(data, survival, pairs, whichMain = colnames(X), mc.cores=1, minObs = 5){
+	whichMain <- names(which(colSums(data!=0,na.rm=TRUE)[whichMain] >= minObs))
+	data <- data + 0 ## Make numeric
 	result <- mclapply(pairs, function(s){
 				a <- s[1]
 				b <- s[2]
-				if(length(a)==0 | length(b)==0 | sum(data[,a] & data[,b], na.rm=TRUE) == 0)
+				if(length(a)==0 | length(b)==0 | sum(data[,a] & data[,b], na.rm=TRUE) < minObs)
 					return(c(1,1,NA,1))
 				main <- "." #ifelse(!includeAllMain, paste(a,b, sep="+"), ".") 
 				interaction <- paste(a,b, sep=":")
 				ix <- union(whichMain, c(a, b))
 				X <- data[,ix]
-				X <- X[,colSums(X!=0)>=5]
-				cat(dim(X),"\n")
 				withCallingHandlers(
 						tryCatch({
 									warn <- 0
+									pWald <- NA
+									coef <- NA
+									pLR <- NA
 									fit1 <- coxph(as.formula(paste("survival ~ ", interaction , " + ",main,sep="" )), data=X)
 									coef <- coef(fit1)[interaction]
 									idx <- which(names(coef(fit1))==interaction)

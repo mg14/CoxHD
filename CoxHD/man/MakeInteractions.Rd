@@ -1,0 +1,24 @@
+\name{MakeInteractions}
+\alias{MakeInteractions}
+\title{Pairwise interactions.
+This function creates all pairwise interaction (product) terms of two data.frames()}
+\usage{
+  MakeInteractions(X, Y)
+}
+\arguments{
+  \item{X}{}
+
+  \item{Y}{}
+}
+\value{
+  A data.frame() of dimensions nrow(X) by (ncol(X) x
+  ncol(Y))
+}
+\description{
+  Pairwise interactions. This function creates all pairwise
+  interaction (product) terms of two data.frames()
+}
+\author{
+  mg14
+}
+

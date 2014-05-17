@@ -2,15 +2,15 @@
 \alias{plot.CoxCPSS}
 \title{Plot a CoxCPSS model}
 \usage{
-  plot.CoxCPSS(stabCox, xlab = "1/lambda",
+  plot.CoxCPSS(x, xlab = "1/lambda",
     ylab = "Selection probability",
-    lty = rep(1, ncol(stabCox$X)), log = "",
+    lty = rep(1, ncol(x$X)), log = "",
     col = c("black", "grey"),
-    xlim = range(1/stabCox$lambda[stabCox$Lambda]),
-    ylim = c(0, 1), ...)
+    xlim = range(1/x$lambda[x$Lambda]), ylim = c(0, 1),
+    ...)
 }
 \arguments{
-  \item{stabCox}{}
+  \item{x}{a CoxCPSS model}
 
   \item{xlab}{}
 

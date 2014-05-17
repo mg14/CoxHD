@@ -13,21 +13,47 @@ SimSurv <- function(risk) {
 	return(surv)
 }
 
-##### Simulation study for ecoxph
-SimSurvNonp <- function(risk, H0, surv, cens.frac=mean(surv[,2]==0, na.rm=TRUE), ...) {
-	#hazardDist <- loess(H0$time ~ H0$hazard, control = loess.control(surface = "direct"), ...)
-	hazardDist <- splinefun(H0$hazard, H0$time, method="monoH.FC")
+#' Non-parametric survival simulations
+#' @param risk A vector of the relative risk/
+#' @param surv A survival object
+#' @param H0 The baseline hazed function. By default this is given by basehaz(coxph(surv ~ 1)).
+#' @return A Surv()ival object
+#' 
+#' @author mg14
+#' @export
+SimSurvNonp <- function(risk, surv, H0 = basehaz(coxph(surv ~ 1))) {
+	## Simulate deaths times
+	FhazInv <- splinefun(c(0,H0$hazard), c(0,H0$time), method="monoH.FC")
 	n = length(risk)
-	deathTimes = hazardDist(rexp(n, exp(risk))) #predict(hazardDist, rexp(n, exp(risk)))
-	censDist <- loess(sort(na.omit(surv[surv[,2]==0,1])) ~ seq(0,1, length=sum(surv[,2]==0, na.rm=TRUE)), ...)
-	censTimes <- predict(censDist, runif(n, 0,1))
-	#censDist <- splinefun(sort(na.omit(surv[surv[,2]==0,1])) ~ seq(0,1, length=sum(surv[,2]==0, na.rm=TRUE)), method="monoH.FC")
-	#censTimes <- censDist(runif(n,0,1))
-	surv = Surv(time = pmax(0,pmin(deathTimes, censTimes)), event=(deathTimes < censTimes)+0)
-	return(surv)
+	deathTimes = FhazInv(rexp(n, exp(risk))) #predict(hazardDist, rexp(n, exp(risk)))
+	
+	## Simulate censoring times
+	nCens <- sum(surv[,2]==0, na.rm=TRUE)
+	Fsurv <- splinefun(exp(-H0$hazard) ~ H0$time, method="monoH.FC")
+	x <- sort(na.omit(surv[surv[,2]==0,1])) ## observed (conditioned) censored times
+	t <- table(x) / nCens
+	y <- t / Fsurv(unique(x)) ## Need to get unconditional distribution
+	Fcens <- cumsum(y)
+	Fcens <- Fcens/max(Fcens)
+	FcensInv <- splinefun(unique(x) ~ Fcens, method="monoH")
+	censTimes <- FcensInv(runif(n,0,1))
+	
+	## Put together
+	survOut <-  Surv(time = pmax(0,pmin(deathTimes, censTimes)), event=(deathTimes < censTimes)+0)
+	return(survOut)
 }
 
 
+#' Non-parametric data extrapolations based on multiple imputation
+#' A fraction percentMissing is set to NA and multiple imputation from the mice package is used to fill these gaps.
+#' @param oldData 
+#' @param nData 
+#' @param percentMissing 
+#' @param ... 
+#' @return A data.frame with extrapolatied data
+#' 
+#' @author mg14
+#' @export
 SimDataNonp <- function(oldData, nData, percentMissing = 0.33, ...){
 	require(mice)
 	oldData <- oldData[!apply(is.na(oldData), 1, all),]
@@ -55,7 +81,20 @@ GetPairs <- function(names, scope){
 			})
 }
 
-TestInteractions <- function(data, survival, pairs, whichMain = colnames(X), mc.cores=1, minObs = 5){
+#' Test for interactions
+#' A coxph() model is used to systematically test for interactions. Returned are both a Wald test and a likelihood ratio test, 
+#' as well as the estimated coefficient and an indicator if the fitting caused a warning(). 
+#' @param data A data.frame() with covariates
+#' @param survival A Surv()ival object
+#' @param pairs A list() with interactions to be considered
+#' @param whichMain A vector() of main effects to include. The main effects of the pair of interests are always included/
+#' @param minObs The minimal number of observations for main effects other than the interaction. 
+#' @param mc.cores The number of cores to use.
+#' @return A data.frame() with columns pWald, pLR, coef and warn.
+#' 
+#' @author mg14
+#' @export
+TestInteractions <- function(data, survival, pairs, whichMain = colnames(data), mc.cores=1, minObs = 5){
 	whichMain <- names(which(colSums(data!=0,na.rm=TRUE)[whichMain] >= minObs))
 	data <- data + 0 ## Make numeric
 	result <- mclapply(pairs, function(s){
@@ -99,7 +138,7 @@ DensityEstimates <- function(coxRFX, newx = range(coef(coxRFX)), n = 100){
 	c <- coef(coxRFX)
 	v <- diag(coxRFX$var)
 	z <- mapply(function(i,j) dnorm(x, i, j), c, sqrt(v))
-	sapply(levels(coxRFXFit$groups), function(g) rowMeans(z[,coxRFXFit$groups==g, drop=FALSE]))
+	sapply(levels(coxRFX$groups), function(g) rowMeans(z[,coxRFX$groups==g, drop=FALSE]))
 }
 
 
@@ -142,12 +181,26 @@ pi2p = function(s, pi.thr=0.5){
 }
 
 
+#' Pairwise interactions.
+#' This function creates all pairwise interaction (product) terms of two data.frames()
+#' @param X 
+#' @param Y 
+#' @return A data.frame() of dimensions nrow(X) by (ncol(X) x ncol(Y))
+#' 
+#' @author mg14
+#' @export
 MakeInteractions <- function(X,Y){
 	Z <- do.call(cbind, lapply(X, `*`, Y))
 	colnames(Z) <- apply(expand.grid(colnames(Y), colnames(X)),1,paste, collapse=":")
 	return(Z)
 }
 
+#' Convert factor to integer.
+#' @param F A factor
+#' @return A data.frame() with columns corresponding to levels() in the factor. 
+#' 
+#' @author mg14
+#' @export
 MakeInteger <- function(F){
 	res <- as.data.frame(lapply(levels(F), `==`, F))
 	colnames(res) <- levels(F)

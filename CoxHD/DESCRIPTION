@@ -10,9 +10,11 @@ Description: This package includes two extension of the Cox proportional
     selection.
 Depends:
     glmnet,
-    survival
-License:
-	GPL-3
+    survival,
+    mice,
+    parallel,
+    MASS
+License: GPL-3
 Collate:
     'CoxCPSS.R'
     'CoxRFX.R'

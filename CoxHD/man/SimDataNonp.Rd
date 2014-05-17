@@ -1,0 +1,29 @@
+\name{SimDataNonp}
+\alias{SimDataNonp}
+\title{Non-parametric data extrapolations based on multiple imputation
+A fraction percentMissing is set to NA and multiple imputation from the mice package is used to fill these gaps.}
+\usage{
+  SimDataNonp(oldData, nData, percentMissing = 0.33, ...)
+}
+\arguments{
+  \item{oldData}{}
+
+  \item{nData}{}
+
+  \item{percentMissing}{}
+
+  \item{...}{}
+}
+\value{
+  A data.frame with extrapolatied data
+}
+\description{
+  Non-parametric data extrapolations based on multiple
+  imputation A fraction percentMissing is set to NA and
+  multiple imputation from the mice package is used to fill
+  these gaps.
+}
+\author{
+  mg14
+}
+

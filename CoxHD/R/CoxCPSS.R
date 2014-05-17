@@ -160,7 +160,7 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 }
 
 #' Plot a CoxCPSS model
-#' @param stabCox 
+#' @param x a CoxCPSS model 
 #' @param xlab 
 #' @param ylab 
 #' @param lty 
@@ -170,16 +170,17 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 #' @param ylim 
 #' @param ... 
 #' @return NULL
+#' @S3method plot CoxCPSS
 #' 
 #' @author mg14
 #' @export
-plot.CoxCPSS = function(stabCox, xlab='1/lambda', ylab="Selection probability", lty = rep(1, ncol(stabCox$X)), log="", col = c("black","grey"), xlim=range(1/stabCox$lambda[stabCox$Lambda]), ylim=c(0,1),...){
+plot.CoxCPSS = function(x, xlab='1/lambda', ylab="Selection probability", lty = rep(1, ncol(x$X)), log="", col = c("black","grey"), xlim=range(1/x$lambda[x$Lambda]), ylim=c(0,1),...){
 	#attach(stacoxph)
 	plot(NA,NA, xlim=xlim, ylim=ylim, xlab=xlab, ylab=ylab, log = log, ... )
-	for(i in 1:nrow(stabCox$Pr)){
-		lines(1/stabCox$lambda, stabCox$Pr[i,], lwd = 1, col=ifelse(stabCox$Pi[i] > stabCox$pi.thr, col[1], col[2]), lty = lty[i], ...)
+	for(i in 1:nrow(x$Pr)){
+		lines(1/x$lambda, x$Pr[i,], lwd = 1, col=ifelse(x$Pi[i] > x$pi.thr, col[1], col[2]), lty = lty[i], ...)
 	}
-	lines(1/stabCox$lambda, stabCox$theta, lwd = 1, lty= 3)
+	lines(1/x$lambda, x$theta, lwd = 1, lty= 3)
 	#mtext(at=Pr[names(Pi),][Pi > pi_thr, max(which(Lambda)],.01), names(Pi)[Pi> pi_thr],side=4, cex=.75)
 }
 

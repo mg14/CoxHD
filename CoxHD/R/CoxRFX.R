@@ -140,48 +140,49 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 }
 
 #' Partial risk components
-#' @param fit 
-#' @param newX 
+#' @param fit The CoxRFX fit
+#' @param newX New data, defaults to fit$X
+#' @param groups The groups, defaults to fit$groups
 #' @return A matrix with the risk per group
 #' 
 #' @author mg14
 #' @export
-PartialRisk <- function(fit, newX=NULL) {
-	if(is.null(newX))
-		newX=fit$X
-	sapply(levels(fit$groups), function(x) {
-				ix <- fit$groups == x
+PartialRisk <- function(fit, newX=fit$X, groups=fit$groups) {
+	sapply(levels(groups), function(x) {
+				ix <- groups == x
 				as.matrix(newX[,ix, drop=FALSE]) %*% coef(fit)[ix] 
 			})
 }
 
 #' Variance (confidence intervals) of partial risk components
-#' @param fit 
-#' @param newX 
+#' @param fit The CoxRFX fit
+#' @param newX New data, defaults to fit$X
+#' @param groups The groups, defaults to fit$groups
 #' @return A matrix with the confidence interval (prediction variance) for each risk component
 #' 
 #' @author mg14
 #' @export
-PartialRiskVar <- function(fit, newX=NULL) {
-	if(is.null(newX))
-		newX=fit$X
+PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups) {
 	newX <- newX - rep(colMeans(newX), each=nrow(newX))
-	sapply(levels(fit$groups), function(x) {
-				ix <- fit$groups == x
+	sapply(levels(groups), function(x) {
+				ix <- groups == x
 				rowSums((as.matrix(newX[,ix, drop=FALSE]) %*% fit$var[ix,ix]) * as.matrix(newX[,ix, drop=FALSE]))
 			})
 }
 
 #' Variance components
-#' @param fit 
-#' @param type 
+#' @param fit The CoxRFX fit
+#' @param newX New data, defaults to fit$X
+#' @param groups The groups, defaults to fit$groups
+#' @param type Take either the diagonal of the covariance matrix (default), or the colSums. The latter guaranties that the
+#' components sum up to the actual variance, but could be negative in the case of collinearity. The two are equivalent 
 #' @return A vector containing the variance components
 #' 
 #' @author mg14
 #' @export
-VarianceComponents <- function(fit, type=c("diag","colSums")){
+VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","colSums")){
 	type="diag"
-	risk <- PartialRisk(fit = fit)
+	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 	newX <- fit$X - rep(colMeans(fit$X), each=nrow(fit$X))
 	residual <- rowSums((as.matrix(newX) %*% fit$var) * as.matrix(newX))
@@ -228,27 +229,24 @@ VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), in
 
 
 #' Compute concordance for risk components
-#' @param fit 
-#' @param newX 
-#' @param newSurv 
+#' @param fit The CoxRFX fit
+#' @param newX New data, defaults to fit$X
+#' @param groups The groups, defaults to fit$groups
+#' @param newSurv The survival object, defaults to fit$surv
 #' @return A vector with the concordance of each component
 #' 
 #' @author mg14
 #' @export
-PartialC <- function(fit, newX = NULL, newSurv=NULL){
-	if(is.null(newX))
-		newX <- fit$X
-	if(is.null(newSurv))
-		newSurv <- fit$surv
+PartialC <- function(fit, newX = fit$X, newSurv=fit$surv, groups=fit$groups){
 	#require(Hmisc)
-	c <- sapply(levels(fit$groups), function(x) {
-				ix <- fit$groups == x
+	c <- sapply(levels(groups), function(x) {
+				ix <- groups == x
 				r <- as.matrix(newX[,ix, drop=FALSE]) %*% coef(fit)[ix]
 				#rcorr.cens(-r, newSurv)[1]
 				c <- survConcordance(newSurv~r)
 				c(c$concordance, c$std.err)
 			})
-	colnames(c) <- levels(fit$groups)
+	colnames(c) <- levels(groups)
 	return(c)
 }
 	
@@ -284,6 +282,28 @@ PredictRiskMissing <- function(fit, newX=fit$X, var = c("var","var2")){
 	predictions <- t(apply(newX, 1, .predict, beta, Sigma, mu))
 	colnames(predictions) <- c("Expected","Variance")
 	return(predictions)
+}
+
+ImputeXMissing <- function(X, newX=fit$X){
+	Sigma <- cov(X)
+	mu <- colMeans(X)
+	l <- ncol(X)
+	
+	.impute <- function(newX, Sigma, mu){
+		missing <- is.na(newX)
+		expectedX <- newX
+		varianceX <- rep(0,l)
+		if(any(missing)){
+			s <- Sigma[missing, !missing] %*% MASS::ginv(Sigma[!missing, !missing])
+			varianceX[missing] <- diag(s)
+			expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - mu[!missing])
+		}
+		#return(cbind(expectedX, varianceX))
+		expectedX
+	}
+	imputations <- t(apply(newX, 1, .impute, Sigma, mu))
+	colnames(imputations) <- colnames(newX) #c("Expected","Variance")
+	return(imputations)
 }
 
 #' Standardize the magnitude of covariates

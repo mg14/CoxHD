@@ -31,7 +31,7 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 	#### GLMNET dry run
 	alpha.net <- 1 ## 1: LASSO, <1 : elastic net
 	
-	path <- glmnet(x=as.matrix(X[1:d,]), y = as.matrix(data.frame(time=surv[1:d,1] , status = surv[1:d,2])), family="cox", standardize = F, alpha = alpha.net, nlambda = nlambda, penalty.factor = penalty.factor)	
+	path <- glmnet(x=as.matrix(X[1:d,]), y = as.matrix(data.frame(time=surv[1:d,1] , status = surv[1:d,2])), family="cox", standardize = FALSE, alpha = alpha.net, nlambda = nlambda, penalty.factor = penalty.factor)	
 	
 	lambda <- path$lambda    #10^(seq(-3,0, length.out=500))
 	nlambda <- length(lambda)
@@ -45,7 +45,7 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 				w <- runif(ncol(x),alpha.weak,1)
 				#x / rep(pmax(apply(x,2,max),1), each=nrow(x))
 				x <- jitter(x) * rep(w, each=nrow(x))
-				bath <- try(glmnet(x=x[s,], y = as.matrix(data.frame(time = surv[s,1], status = surv[s,2])), lambda=lambda, family="cox", standardize=F, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
+				bath <- try(glmnet(x=x[s,], y = as.matrix(data.frame(time = surv[s,1], status = surv[s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
 				res = list()
 				if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda))){
 					res[[1]] = coef(bath) != 0
@@ -57,7 +57,7 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 					return(NULL)
 				}
 				if(simultaneous == TRUE){
-					bath <- try(glmnet(x=x[-s,], y = as.matrix(data.frame(time = surv[-s,1], status = surv[-s,2])), lambda=lambda, family="cox", standardize=F, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
+					bath <- try(glmnet(x=x[-s,], y = as.matrix(data.frame(time = surv[-s,1], status = surv[-s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
 					if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda)))
 					{
 						res[[2]] = coef(bath, s=lambda) != 0

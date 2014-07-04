@@ -174,14 +174,13 @@ PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups) {
 #' @param fit The CoxRFX fit
 #' @param newX New data, defaults to fit$X
 #' @param groups The groups, defaults to fit$groups
-#' @param type Take either the diagonal of the covariance matrix (default), or the colSums. The latter guaranties that the
+#' @param type Take either the diagonal of the covariance matrix (default), or the rowSums. The latter guaranties that the
 #' components sum up to the actual variance, but could be negative in the case of collinearity. The two are equivalent 
 #' @return A vector containing the variance components
 #' 
 #' @author mg14
 #' @export
-VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","colSums")){
-	type="diag"
+VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","rowSums")){
 	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 	newX <- fit$X - rep(colMeans(fit$X), each=nrow(fit$X))

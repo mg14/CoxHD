@@ -136,6 +136,7 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 	fit$coefficients <- fit$coefficients[1:ncol(data)][order(o)] + mu[fit$groups]
 	names(fit$coefficients) = colnames(data)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
+	class(fit) <- c("CoxRFX", class(fit))
 	return(fit)
 }
 
@@ -182,6 +183,7 @@ PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups) {
 #' @export
 VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","rowSums")){
 	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
+	type <- match.arg(type)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 	newX <- fit$X - rep(colMeans(fit$X), each=nrow(fit$X))
 	residual <- rowSums((as.matrix(newX) %*% fit$var) * as.matrix(newX))
@@ -319,4 +321,32 @@ StandardizeMagnitude <- function(X){
 	i <- n!="1"
 	names(Y)[i] <- paste(names(X)[i], n[i], sep="_")
 	return(Y)
+}
+
+#' Plot a CoxRFX model
+#' @param fit 
+#' @param col 
+#' @param order 
+#' @param xlim 
+#' @param xlab 
+#' @param ... 
+#' @return 
+#' 
+#' @author mg14
+#' @export
+plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")), order = 1:nlevels(fit$groups), xlim=range(coef(fit)), xlab="Coefficient",...){
+	plot(NA,NA, xlim=xlim, ylim=range(1,1+nlevels(fit$groups)), yaxt="n", ylab="",xlab=xlab, ...)
+	axis(side=2, at=1:nlevels(fit$groups), labels = levels(fit$groups)[order], las=2)
+	i <- 1
+	for(l in levels(fit$groups)[order]){
+		m <- fit$mu[l]
+		s <- fit$sigma2[l]
+		x <- seq(m-3*sqrt(s),m+3*sqrt(s), l=100)
+		y <- i+dnorm(x, m, sqrt(s))/dnorm(m, m, sqrt(s))*.8
+		polygon(x,y, col=paste(col[order][i],"44", sep=""), border=NA)
+		lines(x, y, col=col[order][i])
+		points(fit$coef[fit$groups==l],rep(i, sum(fit$groups==l)), col=col[order][i], pch=16, cex=.5)
+		lines(rep(m,2),c(0,.8) +i, col=col[order][i])
+		i <- i+1
+	}
 }

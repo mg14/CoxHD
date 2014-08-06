@@ -15,8 +15,3 @@ Depends:
     parallel,
     MASS
 License: GPL-3
-Collate:
-    'CoxCPSS.R'
-    'CoxRFX.R'
-    'functions.R'
-    'r_concave_tail.R'

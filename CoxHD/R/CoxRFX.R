@@ -330,7 +330,7 @@ StandardizeMagnitude <- function(X){
 #' @param xlim 
 #' @param xlab 
 #' @param ... 
-#' @return 
+#' @return NULL
 #' 
 #' @author mg14
 #' @export

@@ -185,8 +185,8 @@ VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c(
 	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
 	type <- match.arg(type)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
-	newX <- fit$X - rep(colMeans(fit$X), each=nrow(fit$X))
-	residual <- rowSums((as.matrix(newX) %*% fit$var) * as.matrix(newX))
+	newX <- as.matrix(newX - rep(colMeans(newX), each=nrow(newX)))
+	residual <- rowSums(newX %*% fit$var) * newX
 	
 	c <- cov(risk, use="complete")
 	if(type=="diag")

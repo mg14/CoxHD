@@ -208,5 +208,6 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	penalty[i] <- 0
 	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
 	fitInt$Pi0 <- fitMain$Pi
+	return(fitInt)
 }
 

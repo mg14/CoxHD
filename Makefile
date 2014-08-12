@@ -10,4 +10,4 @@ build: CoxHD
 	R CMD build --no-build-vignettes CoxHD
 
 install: CoxHD
-	R CMD install CoxHD
+	R CMD INSTALL CoxHD

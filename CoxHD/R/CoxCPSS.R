@@ -185,28 +185,28 @@ plot.CoxCPSS = function(x, xlab='1/lambda', ylab="Selection probability", lty = 
 }
 
 #' CoxCPSS with interaction terms
-#' @param X 
-#' @param surv 
-#' @param scope 
+#' 
+#' This function runs a two-stage CoxCPSS model to fit interaction terms: In the first stage, only main terms are selected. 
+#' In the second stage CPSS is run on all main terms as well as product terms of the variables selected in stage one. 
+#' The penalty of the main terms selected in stage one is set to zero to ensure they are selected in the presence of the product terms.
+#' @param X The covariates
+#' @param surv The survival object
+#' @param scope The set (indeces) of variables to test.
 #' @param ... 
 #' @return CoxCPSS
 #' 
 #' @author mg14
 #' @export
 CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
-	#R <- apply(X, 2, sample)
-	#s1 <- StabCox(cbind(X,R=R), surv, control="BH", which.error = ncol(X) + 1:ncol(X), ...)
-	s1 <- CoxCPSS(X, surv, control="BH")
-	w <- which(s1$Pi > s1$pi.thr)
+	fitMain <- CoxCPSS(X, surv, control="BH")
+	w <- which(fitMain$Pi > fitMain$pi.thr)
 	i <- intersect(scope, w)
 	I <- MakeInteractions(X[,i],X[,i])[,as.vector(upper.tri(matrix(0,ncol=length(i), nrow=length(i))))]
 	I <- I[,colSums(I) > 0]
 	Z <- cbind(X, I)
-	#R <- apply(Z, 2, sample)
-	#Z <- cbind(Z, R=R)
 	penalty <- rep(1, ncol(Z))
 	penalty[i] <- 0
-	#StabCox(Z, surv, penalty.factor = penalty, control = "BH", which.error = (ncol(X) + ncol(I) + 1):ncol(Z) , ...)
-	CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
+	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
+	fitInt$Pi0 <- fitMain$Pi
 }
 

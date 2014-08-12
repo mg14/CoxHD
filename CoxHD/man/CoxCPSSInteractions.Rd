@@ -6,11 +6,11 @@
 CoxCPSSInteractions(X, surv, scope = 1:ncol(X), ...)
 }
 \arguments{
-\item{X}{}
+\item{X}{The covariates}
 
-\item{surv}{}
+\item{surv}{The survival object}
 
-\item{scope}{}
+\item{scope}{The set (indeces) of variables to test.}
 
 \item{...}{}
 }
@@ -18,7 +18,9 @@ CoxCPSSInteractions(X, surv, scope = 1:ncol(X), ...)
 CoxCPSS
 }
 \description{
-CoxCPSS with interaction terms
+This function runs a two-stage CoxCPSS model to fit interaction terms: In the first stage, only main terms are selected.
+In the second stage CPSS is run on all main terms as well as product terms of the variables selected in stage one.
+The penalty of the main terms selected in stage one is set to zero to ensure they are selected in the presence of the product terms.
 }
 \author{
 mg14

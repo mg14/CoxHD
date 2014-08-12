@@ -285,7 +285,19 @@ PredictRiskMissing <- function(fit, newX=fit$X, var = c("var","var2")){
 	return(predictions)
 }
 
-ImputeXMissing <- function(X, newX=fit$X){
+#' Covariance-based imputation of missing variables
+#' 
+#' This functinon imputes missing variables based on the covariance of a previous data set.
+#' This can be useful if a CoxRFX model (or any other) has been fit on a large data set with
+#' correlated variables and one wants to use this model on a different data sets with fewer 
+#' or randomly missing covariates. 
+#' @param X orignial data set
+#' @param newX The data.frame of covariates
+#' @return A data.frame of dim(newX) with imputed variables
+#' 
+#' @author mg14
+#' @export
+ImputeXMissing <- function(X, newX){
 	Sigma <- cov(X)
 	mu <- colMeans(X)
 	l <- ncol(X)

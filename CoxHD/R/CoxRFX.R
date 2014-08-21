@@ -93,7 +93,7 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 		sigma2 = sapply(uniqueGroups, function(i){
 					index <- which(groups==i) #& fit$coefficients > beta.thresh
 					if(sigma.hat=="p")
-						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + length(index)) #+ mean(diag(fit$var)[index])
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + length(index) -1) #+ mean(diag(fit$var)[index])
 					else if(sigma.hat=="df")
 						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + fit$df[i]) #+ mean(diag(fit$var)[index]) ## REML estimate
 				})
@@ -194,6 +194,29 @@ VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c(
 	else
 		x <- rowSums(c)
 	return(c(x, residual=mean(residual)))
+}
+
+#' Plot variance components
+#' @param fit The CoxRFX fit
+#' @param col The colors for each component
+#' @param groups the groups to be used, if different from the fitted ones.
+#' @param type The type of variance compnents: Either 'rowSums' (default) or 'diag'. Rowsums sum up to the actual variance of the linear predictor, but can be
+#' negative. Plotting just the 'diag'onal elements guarantees positive components  
+#' @return NULL
+#' 
+#' @author mg14
+#' @export
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums") {
+	groups
+	v <- VarianceComponents(fit, type=type)
+	v <- sort(v[levels(groups)], decreasing=TRUE)
+	vp <- v[v>0]
+	vn <- v[v<0]
+	pie(vp, col=col1[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, 2),")", sep=""))
+	if(length(vn)>0){
+		par(new=T)
+		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col1[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, 2),")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA))
+	}
 }
 
 VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), invert = TRUE, value=TRUE), type=c("diag","colSums"), method="simple"){

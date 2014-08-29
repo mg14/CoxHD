@@ -3,40 +3,41 @@
 \alias{CoxRFX}
 \title{Cox proportional hazards model with random effects}
 \usage{
-CoxRFX(data, surv, groups = rep(1, ncol(data)), which.mu = unique(groups),
-  tol = 0.001, max.iter = 50, sigma0 = 1, nu = 1, beta.thresh = 0.001,
-  penalize.mu = FALSE, sigma.hat = c("df", "p"), verbose = FALSE)
+CoxRFX(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
+  tol = 0.001, max.iter = 50, sigma0 = 0.1, nu = 0,
+  penalize.mu = FALSE, sigma.hat = c("MLE", "REML", "df", "BLUP"),
+  verbose = FALSE)
 }
 \arguments{
-\item{data}{}
+\item{X}{The data matrix (n x p)}
 
-\item{surv}{}
+\item{surv}{The survival object (n x 2)}
 
-\item{groups}{}
+\item{groups}{Optional groups as a factor (p) with l levels. Default = rep(1, n)}
 
-\item{which.mu}{}
+\item{which.mu}{Indicator which of the groups should have an offset. Default = unique(groups)}
 
-\item{tol}{}
+\item{tol}{The tolerance beyond which to stop}
 
-\item{max.iter}{}
+\item{max.iter}{The maximal number of iterations}
 
-\item{sigma0}{}
+\item{sigma0}{The variance of a si-chisq hyperprior on the variances.}
 
-\item{nu}{}
+\item{nu}{The df of the variance hyperprior. Default = 0, that is no hyperprior.}
 
-\item{beta.thresh}{}
+\item{penalize.mu}{Wether to define an N(0,tau) hyperprior on the group means.}
 
-\item{penalize.mu}{}
+\item{sigma.hat}{Which estimator to use for the variances. Default MLE. Other possibilities include REML and BLUP.}
 
-\item{sigma.hat}{}
-
-\item{verbose}{}
+\item{verbose}{Gives more output.}
 }
 \value{
-A coxph object with a few extra fields.
+A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means)
 }
 \description{
-Cox proportional hazards model with random effects
+This functinon estimates a Cox proportional in which the parameters follow normal distributions. Multiple groups can be defined with different prior mean and variance.
+The parameters of the prior distribution are estimated by an empirical Bayes approach.
+The model extends the shared frailty model implemented in the survival package to the situation where the frailty covariates are not a factor, but can be overlapping groups.
 }
 \author{
 mg14

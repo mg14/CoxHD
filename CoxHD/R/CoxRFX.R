@@ -35,31 +35,34 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 }
 
 #' Cox proportional hazards model with random effects
-#' @param data 
-#' @param surv 
-#' @param groups 
-#' @param which.mu 
-#' @param tol 
-#' @param max.iter 
-#' @param sigma0 
-#' @param nu 
-#' @param beta.thresh 
-#' @param penalize.mu 
-#' @param sigma.hat 
-#' @param verbose 
-#' @return A coxph object with a few extra fields. 
+#' 
+#' This functinon estimates a Cox proportional in which the parameters follow normal distributions. Multiple groups can be defined with different prior mean and variance. 
+#' The parameters of the prior distribution are estimated by an empirical Bayes approach.
+#' The model extends the shared frailty model implemented in the survival package to the situation where the frailty covariates are not a factor, but can be overlapping groups.  
+#' @param X The data matrix (n x p)
+#' @param surv The survival object (n x 2)
+#' @param groups Optional groups as a factor (p) with l levels. Default = rep(1, n)
+#' @param which.mu Indicator which of the groups should have an offset. Default = unique(groups)
+#' @param tol The tolerance beyond which to stop
+#' @param max.iter The maximal number of iterations
+#' @param sigma0 The variance of a si-chisq hyperprior on the variances.
+#' @param nu The df of the variance hyperprior. Default = 0, that is no hyperprior.
+#' @param penalize.mu Wether to define an N(0,tau) hyperprior on the group means.
+#' @param sigma.hat Which estimator to use for the variances. Default MLE. Other possibilities include REML and BLUP. 
+#' @param verbose Gives more output.
+#' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means)
 #' 
 #' @author mg14
 #' @export
-CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 1, nu = 1, beta.thresh = 1e-3, penalize.mu = FALSE, sigma.hat=c("df","p"), verbose=FALSE){
-	if(class(data)=="data.frame")
-		data = as.matrix(data)
+CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("MLE","REML","df","BLUP"), verbose=FALSE){
+	if(class(X)=="data.frame")
+		X = as.matrix(X)
 	sigma.hat = match.arg(sigma.hat)
 	o <- order(groups)
-	data <- data[,o]
+	X <- X[,o]
 	groups <- factor(groups[o])
 	uniqueGroups <- levels(groups)
-	XX <- lapply(uniqueGroups, function(i) data[,groups==i, drop=FALSE])
+	XX <- lapply(uniqueGroups, function(i) X[,groups==i, drop=FALSE])
 	names(XX) <- uniqueGroups
 	sumX <- sapply(which.mu, function(i) rowSums(XX[[i]]))
 	nGroups = length(uniqueGroups)
@@ -67,8 +70,8 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 	iter = 1
 	mu <- mu0ld <- rep(0, nGroups)
 	names(mu) <- uniqueGroups
-	beta = rep(1,ncol(data)+length(which.mu))
-	beta0ld = rep(0,ncol(data)+length(which.mu))
+	beta = rep(1,ncol(X)+length(which.mu))
+	beta0ld = rep(0,ncol(X)+length(which.mu))
 	sigma2.mu = 42
 	if(!is.null(which.mu)) 
 		if(!penalize.mu)
@@ -86,22 +89,34 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 						collapse=" + ")))
 		fit <- coxph(formula)
 		if(!is.null(which.mu))
-			mu[which.mu] <- coef(fit)[-(1:ncol(data))]
+			mu[which.mu] <- coef(fit)[-(1:ncol(X))]
 		if(verbose) cat("mu", mu, "\n", sep="\t")
 		names(fit$df) <- c(uniqueGroups, rep("Offset", length(which.mu)>0))
 		if(verbose) cat("df", fit$df,"\n", sep="\t")
 		sigma2 = sapply(uniqueGroups, function(i){
 					index <- which(groups==i) #& fit$coefficients > beta.thresh
-					if(sigma.hat=="p")
+					if(sigma.hat=="BLUP")
 						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + length(index) -1) #+ mean(diag(fit$var)[index])
 					else if(sigma.hat=="df")
-						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + fit$df[i]) #+ mean(diag(fit$var)[index]) ## REML estimate
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + fit$df[i]) #+ mean(diag(fit$var)[index]) ## 
+					else if(sigma.hat == "MLE")
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ) + sum(diag(solve(solve(fit$var)[index,index]))))/(nu + length(index))
+					else if(sigma.hat == "REML")
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ) + sum(diag(fit$var)[index]))/(nu + length(index))
 				})
-		if(verbose) cat("sigma2", sigma2, "\n", sep="\t")
-		if(sigma.hat=="p")
-			sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + length(mu) - 2)
+		if(verbose) {
+			cat("sigma2", sigma2, "\n", sep="\t")
+			cat("loglik:", fit$loglik - c(0,fit$penalty[2] + 1/2 * sum(log(sigma2[groups]))),"\n", sep="\t")
+		}
+		if(sigma.hat=="BLUP")
+			sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + length(mu))
 		else if(sigma.hat=="df")
 			sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + fit$df["Offset"])
+		else if(sigma.hat == "MLE")
+			sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(solve(solve(fit$var)[-(1:ncol(X)),-(1:ncol(X))]))))/(nu + length(mu))
+		else if(sigma.hat == "REML")
+			sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
+		
 		
 		#cat(sigma.mu,"\n")
 		beta = fit$coefficients
@@ -122,19 +137,19 @@ CoxRFX <- function(data, surv, groups = rep(1, ncol(data)), which.mu = unique(gr
 	fit$sigma2.mu = sigma2.mu
 	fit$mu = mu
 	#fit$sumX = sumX
-	fit$X = data[,order(o)]
+	fit$X = X[,order(o)]
 	fit$surv = surv
 	fit$groups = groups[order(o)]
 	var = fit$var
 	var2 = fit$var2
-	fit$var = var[1:ncol(data),1:ncol(data)][order(o),order(o)]
-	fit$var2 = var2[1:ncol(data),1:ncol(data)][order(o),order(o)]
-	fit$mu.var = var[-(1:ncol(data)),-(1:ncol(data))]
-	fit$mu.var2 = var2[-(1:ncol(data)),-(1:ncol(data))]
-	fit$means = fit$means[1:ncol(data)][order(o)]
+	fit$var = var[1:ncol(X),1:ncol(X)][order(o),order(o)]
+	fit$var2 = var2[1:ncol(X),1:ncol(X)][order(o),order(o)]
+	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))]
+	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))]
+	fit$means = fit$means[1:ncol(X)][order(o)]
 	#fit$delta = sapply(unique(groups), function(i) mean(groups==i & fit$coefficients < beta.thresh))
-	fit$coefficients <- fit$coefficients[1:ncol(data)][order(o)] + mu[fit$groups]
-	names(fit$coefficients) = colnames(data)[order(o)]
+	fit$coefficients <- fit$coefficients[1:ncol(X)][order(o)] + mu[fit$groups]
+	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	class(fit) <- c("CoxRFX", class(fit))
 	return(fit)

@@ -96,15 +96,21 @@ survConcordance(surv ~ risk)
 #+ fit
 fit = CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
 
+fits <- lapply(1:10, function(x){
+			surv = SimSurv(risk = risk)
+			CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
+		})
+
+
 #' Plot estimates
 #+ plotEstimates, fig.height=8, fig.width=8
 par(mfrow=c(2,2))
 boxplot(coef(fit) ~ groups)
 
-plot(sd, sqrt(fit$sigma2))
+plot(rep(sd,10), sqrt(sapply(fits, `[[`, "sigma2")), xlab='sd', ylab="estimate")
 abline(0,1)
 
-plot(mu, fit$mu)
+plot(rep(mu,10), sapply(fits, `[[`, "mu"), xlab='mu', ylab="estimate")
 abline(0,1)
 
 plot(a, coef(fit),  col= brewer.pal(5,"Set1")[groups])

@@ -13,8 +13,7 @@ opts_chunk$set(dev=c('png','pdf'), fig.ext=c('png','pdf'), fig.width=4, fig.heig
 #' ### Preliminaries
 #+ preliminaries, cache=FALSE
 set.seed(42)
-source("../CoxHD/R/functions.R")
-source("../CoxHD/R/ecoxph.R")
+library(CoxHD)
 library(Hmisc)
 library(RColorBrewer)
 library(mvtnorm)
@@ -40,9 +39,8 @@ library(mvtnorm)
 #' which are implemented in R using the ridge() function in coxph().
 #' 
 #' To estimate $\sigma_g^2$ we can then iterate between the MAP estimates $\beta^*$ and
-#' $$\sigma_g^2 \mid \beta_j^*,j\in g = \sum_j\beta_j^2 / df_g$$
-#' where $df_g = \mathrm{tr} [(H^-1 H)_{gg}]$ defines the effective degrees of freedom for estimating the $\beta_j$ within each group $g$ and $H$ being the Hessian of the partial likelihood.
-#' The degress of freedom are smaller than the number of parameters because the column space of the covariates usually has lower dimensions.
+#' $$\sigma_g^2 \mid \beta_j^*,j\in g = (\sum_j\beta_j^2 +r )/ |g|$$
+#' where $H$ being the Hessian of the partial likelihood. The parameter $r = \mathrm{tr} [(H_{gg})^{-1}]$ yields the MLE estimate. Other choices of $r$ are also possible.
 #' 
 #' Optionally one may define a hyperprior for $\sigma^2_g \sim \operatorname{si}\chi^2(\nu, \sigma_0^2)$, which can help stabilize the estimates.
 #' 
@@ -85,8 +83,8 @@ rowSums(cov(riskComponents))
 
 #' ### Simulate survival
 #+ survival
-SimSurv
-surv = SimSurv(risk = risk)
+CoxHD:::SimSurv
+surv = CoxHD:::SimSurv(risk = risk)
 plot(survfit(surv ~1))
 
 #' Maximal concordance
@@ -94,10 +92,10 @@ survConcordance(surv ~ risk)
 
 #' ### Fit model
 #+ fit
-fit = CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
+fit = CoxRFX(Z, surv, groups = groups)
 
 fits <- lapply(1:10, function(x){
-			surv = SimSurv(risk = risk)
+			surv = CoxHD:::SimSurv(risk = risk)
 			CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
 		})
 
@@ -166,7 +164,7 @@ pie(varComp,main = "Variance components")
 
 #+ dotchart, fig.height=5, fig.width=5
 comp <- lapply(1:10, function(i){
-			surv <-  SimSurv(risk = risk)
+			surv <-  CoxHD:::SimSurv(risk = risk)
 			fit <-  CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
 			riskComponents <- sapply(levels(groups), function(g)  Z[,groups==g] %*% a[groups==g])
 			varComp <- VarianceComponents(fit)
@@ -179,7 +177,7 @@ for(v in comp)
 legend("topright", pch=c(19,1), c("True","Estd"), bty="n")
 
 #' ### Comparison to frailty models
-#' For a factorial set of covariates the model is equivalent to a frailty model
+#' For a factorial set of covariates (i.e., $X_{ij} \in \{0,1\}; \sum_j X_{i,j}=1 \forall i$), the model is equivalent to a frailty model
 #+ frailty, fig.height=8, fig.width=8
 set.seed(42)
 par(mfrow=c(3,3))
@@ -189,7 +187,7 @@ for(nLevels in c(5,10,50))
 		X <- sapply(1:nLevels, `==`, f) +0
 		b <- rnorm(nLevels)
 		r <- X %*% b
-		s <- SimSurv(r)
+		s <- CoxHD:::SimSurv(r)
 		frailtyFit <- coxph(s ~ frailty(f, "gaussian"))
 		rfxFit <- CoxRFX(X, s, sigma0=1, which.mu=NULL)
 		if(nLevels<=5)
@@ -252,7 +250,7 @@ for(rho in -4:-1){
 	Z[] <- Z > quantile(Z, 0.75)
 	risk = Z %*% a
 	risk <- risk / sd(risk)
-	s <- SimSurv(risk)
+	s <- CoxHD:::SimSurv(risk)
 	fit <- CoxRFX(Z, s, groups=groups)
 	nNewX <- 500
 	newX <- fit$X[1:nNewX,]

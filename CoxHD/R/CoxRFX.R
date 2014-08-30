@@ -108,15 +108,16 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 			cat("sigma2", sigma2, "\n", sep="\t")
 			cat("loglik:", fit$loglik - c(0,fit$penalty[2] + 1/2 * sum(log(sigma2[groups]))),"\n", sep="\t")
 		}
-		if(sigma.hat=="BLUP")
-			sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + length(mu))
-		else if(sigma.hat=="df")
-			sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + fit$df["Offset"])
-		else if(sigma.hat == "MLE")
-			sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(solve(solve(fit$var)[-(1:ncol(X)),-(1:ncol(X))]))))/(nu + length(mu))
-		else if(sigma.hat == "REML")
-			sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
-		
+		if(penalize.mu){
+			if(sigma.hat=="BLUP")
+				sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + length(mu))
+			else if(sigma.hat=="df")
+				sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + fit$df["Offset"])
+			else if(sigma.hat == "MLE")
+				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(solve(solve(fit$var)[-(1:ncol(X)),-(1:ncol(X))]))))/(nu + length(mu))
+			else if(sigma.hat == "REML")
+				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
+		}
 		
 		#cat(sigma.mu,"\n")
 		beta = fit$coefficients
@@ -201,7 +202,7 @@ VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c(
 	type <- match.arg(type)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 	newX <- as.matrix(newX - rep(colMeans(newX), each=nrow(newX)))
-	residual <- rowSums(newX %*% fit$var) * newX
+	residual <- rowSums((newX %*% fit$var) * newX)
 	
 	c <- cov(risk, use="complete")
 	if(type=="diag")

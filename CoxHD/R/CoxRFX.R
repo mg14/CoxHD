@@ -133,6 +133,7 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	}
 	if(iter == max.iter)
 		warning("Did not converge after", max.iter, "iterations.")
+	fit$iter[1] <- iter
 	fit$sigma2 = sigma0ld
 	names(fit$sigma2) <- uniqueGroups
 	fit$sigma2.mu = sigma2.mu
@@ -152,6 +153,7 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	fit$coefficients <- fit$coefficients[1:ncol(X)][order(o)] + mu[fit$groups]
 	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
+	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
 	class(fit) <- c("CoxRFX", class(fit))
 	return(fit)
 }
@@ -222,16 +224,26 @@ VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c(
 #' 
 #' @author mg14
 #' @export
-PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums") {
-	groups
-	v <- VarianceComponents(fit, type=type)
-	v <- sort(v[levels(groups)], decreasing=TRUE)
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2) {
+	if(is.null(names(col)))
+		names(col) <- levels(groups)
+	v <- VarianceComponents(fit, groups=groups, type=type)
+	o <- order(v[levels(groups)], decreasing=TRUE)
+	v <- v[o]
 	vp <- v[v>0]
-	vn <- v[v<0]
-	pie(vp, col=col1[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, 2),")", sep=""))
+	vn <- v[v<=0]
+	if(conf.int){
+		r <- paste( "+/-",round(colMeans(PartialRiskVar(fit, groups=groups))[o], digits))
+		rp <- r[v>0]
+		rn <- r[v<=0]
+	}else{
+		rp <- rn <- NULL
+	}
+	pie(vp, col=col[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, digits),rp,")",sep=""), radius = sum(v))
+	
 	if(length(vn)>0){
 		par(new=T)
-		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col1[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, 2),")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA))
+		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sum(v))
 	}
 }
 

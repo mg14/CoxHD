@@ -97,7 +97,10 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 	res = list(X=X, surv=surv, lambda=lambda, Lambda=Lambda, Pr=Pr, Pi=apply(Pr, 1, max), bootstrap.samples=B, n=nrow(X), pi.thr=pi.thr, level=level, control=control, Pr_sim=Pr_sim, M=M,  penalty.factor =  penalty.factor , alpha.weak = alpha.weak, P=NULL, which.error=which.error)
 	class(res) = "CoxCPSS"
 
-	ErrorControlCPSS(res, control = control, level = level)
+	res <- ErrorControlCPSS(res, control = control, level = level)
+	res$coxph <- coxph(res$surv ~ ., data=res$X[,which(res$Pi > pi.thr)])
+	
+	return(res)
 }
 
 #' Type-1 error control for CoxCPSS
@@ -211,3 +214,16 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	return(fitInt)
 }
 
+#' Print a CoxCPSS model
+#' @param x The CoxCPSS model
+#' @return NULL 
+#' 
+#' @author mg14
+#' @export
+print.CoxCPSS <- function(x){
+	cat("\n")
+	cat(paste(format(c("Variable ", names(which(x$Pi>x$pi.thr)))),format(c("Selection Prob. ", x$Pi[which(x$Pi>x$pi.thr)])), format("P-value ", ), sep=""),sep="\n")
+	cat("\n")
+	cat("coxph:\n")
+	print(x$coxph)
+}

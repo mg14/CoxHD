@@ -211,6 +211,7 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	penalty[i] <- 0
 	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
 	fitInt$Pi0 <- fitMain$Pi
+	fitInt$Pval0 <- fitMain$Pval
 	return(fitInt)
 }
 
@@ -221,9 +222,20 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 #' @author mg14
 #' @export
 print.CoxCPSS <- function(x){
+	cat("\nStability selection:\n")
+	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("Selection Prob. ", x$Pi[which(x$Pi>x$pi.thr)])), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
 	cat("\n")
-	cat(paste(format(c("Variable ", names(which(x$Pi>x$pi.thr)))),format(c("Selection Prob. ", x$Pi[which(x$Pi>x$pi.thr)])), format("P-value ", ), sep=""),sep="\n")
-	cat("\n")
-	cat("coxph:\n")
+	cat("Corresponding coxph:\n")
 	print(x$coxph)
+}
+
+#' Predict method for a CoxCPSS object
+#' @param x A CoxCPSS fit
+#' @param ... Parameters passed on to predict.coxph
+#' @return Depending on the arguments ... either a vector of the log hazard ratio, or something else.
+#' 
+#' @author mg14
+#' @export
+predict.CoxCPSS <- function(x, ...){
+	predict(x$coxph, ...)
 }

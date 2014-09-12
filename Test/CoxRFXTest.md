@@ -1,18 +1,12 @@
 The Cox RFX model
 =========================
 
-```{r echo=FALSE, cache=FALSE}
-opts_chunk$set(cache=TRUE, autodep=TRUE)
-options(width=120)
-knit_hooks$set(smallMar = function(before, options, envir) {
-			if (before) par(mar=c(3,3,1,1), bty="n", mgp=c(2,.5,0)) 
-		})
-opts_chunk$set(dev=c('png','pdf'), fig.ext=c('png','pdf'), fig.width=4, fig.height=4, smallMar=TRUE)
-```
+
 
 ### Preliminaries
 
-```{r preliminaries, cache=FALSE}
+
+```r
 set.seed(42)
 library(CoxHD)
 library(Hmisc)
@@ -41,21 +35,137 @@ $$\beta_j^* \mid \sigma_g(j)^2, X = \beta_j^{ridge},$$
 which are implemented in R using the ridge() function in coxph().
 
 To estimate $\sigma_g^2$ we can then iterate between the MAP estimates $\beta^*$ and
-$$\sigma_g^2 \mid \beta_j^*,j\in g = (\sum_j\beta_j^2 +r )/ |g|$$
-where $H$ being the Hessian of the partial likelihood. The parameter $r = \mathrm{tr} [(H_{gg})^{-1}]$ yields the MLE estimate. Other choices of $r$ are also possible.
+$$\sigma_g^2 \mid \beta_j^*,j\in g = \frac{\sum_j\beta_j^2 }{df} $$
+where $df$ are the effective degrees of freedom, $df = \mathrm{tr} [(H_{gg}+\sigma_g^2 I)(H_{gg})^{-1}]$, $H$ being the Hessian of the total likelihood, evaluated for elements of group $g$.
 
 Optionally one may define a hyperprior for $\sigma^2_g \sim \operatorname{si}\chi^2(\nu, \sigma_0^2)$, which can help stabilize the estimates.
 
 The implementation of the model is straightforward: 
 
-```{r }
+
+```r
 CoxRFX
+```
+
+```
+## function (X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), 
+##     tol = 0.001, max.iter = 50, sigma0 = 0.1, nu = 0, penalize.mu = FALSE, 
+##     sigma.hat = c("df", "MLE", "REML", "BLUP"), verbose = FALSE) 
+## {
+##     if (class(X) == "data.frame") 
+##         X = as.matrix(X)
+##     sigma.hat = match.arg(sigma.hat)
+##     o <- order(groups)
+##     X <- X[, o]
+##     groups <- factor(groups[o])
+##     uniqueGroups <- levels(groups)
+##     XX <- lapply(uniqueGroups, function(i) X[, groups == i, drop = FALSE])
+##     names(XX) <- uniqueGroups
+##     sumX <- sapply(which.mu, function(i) rowSums(XX[[i]]))
+##     nGroups = length(uniqueGroups)
+##     sigma2 <- sigma0ld <- rep(ifelse(sigma0 > 0, sigma0, 1), 
+##         nGroups)
+##     iter = 1
+##     mu <- mu0ld <- rep(0, nGroups)
+##     names(mu) <- uniqueGroups
+##     beta = rep(1, ncol(X) + length(which.mu))
+##     beta0ld = rep(0, ncol(X) + length(which.mu))
+##     sigma2.mu = 42
+##     if (!is.null(which.mu)) 
+##         if (!penalize.mu) 
+##             sumTerm <- "sumX"
+##         else sumTerm <- "ridge(sumX, theta=1/sigma2.mu, scale=FALSE)"
+##     else sumTerm <- character(0)
+##     while ((max(abs(beta - beta0ld)) > tol | max(abs(mu - mu0ld)) > 
+##         tol | max(abs(sigma2 - sigma0ld)) > tol) & iter < max.iter) {
+##         beta0ld = beta
+##         sigma0ld <- sigma2
+##         mu0ld <- mu
+##         formula <- formula(paste("surv ~", paste(c(sapply(1:nGroups, 
+##             function(i) paste("ridge(XX[[", i, "]], theta=1/sigma2[", 
+##                 i, "], scale=FALSE)", sep = "")), sumTerm), collapse = " + ")))
+##         fit <- coxph(formula)
+##         if (!is.null(which.mu)) 
+##             mu[which.mu] <- coef(fit)[-(1:ncol(X))]
+##         if (verbose) 
+##             cat("mu", mu, "\n", sep = "\t")
+##         names(fit$df) <- c(uniqueGroups, rep("Offset", length(which.mu) > 
+##             0))
+##         if (verbose) 
+##             cat("df", fit$df, "\n", sep = "\t")
+##         sigma2 = sapply(uniqueGroups, function(i) {
+##             index <- which(groups == i)
+##             if (sigma.hat == "BLUP") 
+##                 (nu * sigma0 + sum((fit$coefficients[index])^2))/(nu + 
+##                   length(index) - 1)
+##             else if (sigma.hat == "df") 
+##                 (nu * sigma0 + sum((fit$coefficients[index])^2))/(nu + 
+##                   fit$df[i])
+##             else if (sigma.hat == "MLE") 
+##                 (nu * sigma0 + sum((fit$coefficients[index])^2) + 
+##                   sum(diag(solve(solve(fit$var)[index, index]))))/(nu + 
+##                   length(index))
+##             else if (sigma.hat == "REML") 
+##                 (nu * sigma0 + sum((fit$coefficients[index])^2) + 
+##                   sum(diag(fit$var)[index]))/(nu + length(index))
+##         })
+##         if (verbose) {
+##             cat("sigma2", sigma2, "\n", sep = "\t")
+##             cat("loglik:", fit$loglik - c(0, fit$penalty[2] + 
+##                 1/2 * sum(log(sigma2[groups]))), "\n", sep = "\t")
+##         }
+##         if (penalize.mu) {
+##             if (sigma.hat == "BLUP") 
+##                 sigma2.mu = (sigma0 * nu + sum((mu - 0)^2))/(nu + 
+##                   length(mu))
+##             else if (sigma.hat == "df") 
+##                 sigma2.mu = (sigma0 * nu + sum((mu - 0)^2))/(nu + 
+##                   fit$df["Offset"])
+##             else if (sigma.hat == "MLE") 
+##                 sigma2.mu = (nu * sigma0 + sum((mu - 0)^2) + 
+##                   sum(diag(solve(solve(fit$var)[-(1:ncol(X)), 
+##                     -(1:ncol(X))]))))/(nu + length(mu))
+##             else if (sigma.hat == "REML") 
+##                 sigma2.mu = (nu * sigma0 + sum((mu - 0)^2) + 
+##                   sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
+##         }
+##         beta = fit$coefficients
+##         iter = iter + 1
+##     }
+##     if (iter == max.iter) 
+##         warning("Did not converge after", max.iter, "iterations.")
+##     fit$iter[1] <- iter
+##     fit$sigma2 = sigma0ld
+##     names(fit$sigma2) <- uniqueGroups
+##     fit$sigma2.mu = sigma2.mu
+##     fit$mu = mu
+##     fit$X = X[, order(o)]
+##     fit$surv = surv
+##     fit$groups = groups[order(o)]
+##     var = fit$var
+##     var2 = fit$var2
+##     fit$var = var[1:ncol(X), 1:ncol(X)][order(o), order(o)]
+##     fit$var2 = var2[1:ncol(X), 1:ncol(X)][order(o), order(o)]
+##     fit$mu.var = var[-(1:ncol(X)), -(1:ncol(X))]
+##     fit$mu.var2 = var2[-(1:ncol(X)), -(1:ncol(X))]
+##     fit$means = fit$means[1:ncol(X)][order(o)]
+##     fit$coefficients <- fit$coefficients[1:ncol(X)][order(o)] + 
+##         mu[fit$groups]
+##     names(fit$coefficients) = colnames(X)[order(o)]
+##     fit$terms <- fit$terms[1:length(uniqueGroups)]
+##     fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 
+##         1/2 * sum(log(fit$sigma2[groups]))
+##     class(fit) <- c("CoxRFX", class(fit))
+##     return(fit)
+## }
+## <environment: namespace:CoxHD>
 ```
 
 ## Simulations
 First define some parameters
 
-```{r parameters}
+
+```r
 nParam = 250 # Parameters
 nObs = 1000 # Observations
 nGroups <- 5
@@ -64,7 +174,8 @@ groups <- factor(paste("Group", rep(1:nGroups, each=nParam/nGroups)))
 
 Now draw coefficients
 
-```{r coefficients, cache=FALSE}
+
+```r
 mu <- seq(-0.5,0.5,l=nGroups) # Coefficient mean within each group 
 sd <- seq(0.1,1, l=nGroups)  # Standard deviations
 a <- rnorm(nParam, mean = rep(mu, each=50), sd = rep(sd, each=50)) # Normal coefficients
@@ -75,9 +186,19 @@ Z[] <- Z > quantile(Z, 0.75) ## Make binary
 cor(Z[,1:5])
 ```
 
+```
+##          [,1]     [,2]     [,3]      [,4]      [,5]
+## [1,]  1.00000 -0.01583  0.01462  0.075200 -0.079273
+## [2,] -0.01583  1.00000 -0.00190 -0.015594  0.024223
+## [3,]  0.01462 -0.00190  1.00000  0.011478  0.067048
+## [4,]  0.07520 -0.01559  0.01148  1.000000  0.005147
+## [5,] -0.07927  0.02422  0.06705  0.005147  1.000000
+```
+
 Simulated risk
 
-```{r risk}
+
+```r
 risk = Z %*% a
 a <- a / sd(risk) # standardize
 mu <- mu / sd(risk) # standardize
@@ -86,31 +207,90 @@ risk <- risk / sd(risk) # standardize
 head(risk)
 ```
 
+```
+##          [,1]
+## [1,] -0.82081
+## [2,] -1.10304
+## [3,] -0.06082
+## [4,]  0.92297
+## [5,]  0.92194
+## [6,]  0.39631
+```
+
 By group
 
-```{r groups}
+
+```r
 riskComponents <- sapply(levels(groups), function(g)  Z[,groups==g] %*% a[groups==g])
 cov(riskComponents)
+```
+
+```
+##           Group 1  Group 2   Group 3   Group 4  Group 5
+## Group 1  0.195812  0.03862  0.005227 -0.034691 -0.09122
+## Group 2  0.038620  0.08096  0.002250 -0.022763 -0.03681
+## Group 3  0.005227  0.00225  0.110300 -0.008204 -0.01269
+## Group 4 -0.034691 -0.02276 -0.008204  0.262391  0.01924
+## Group 5 -0.091217 -0.03681 -0.012695  0.019240  0.63262
+```
+
+```r
 rowSums(cov(riskComponents))
+```
+
+```
+## Group 1 Group 2 Group 3 Group 4 Group 5 
+## 0.11375 0.06226 0.09688 0.21597 0.51114
 ```
 
 ### Simulate survival
 
-```{r survival}
+
+```r
 CoxHD:::SimSurv
+```
+
+```
+## function (risk) 
+## {
+##     n = length(risk)
+##     death = 1/log(2) * log(rexp(n, exp(risk)) * log(2) + 1)
+##     cens = rbinom(n, 1, 0.5)
+##     surv = Surv(time = pmax(0, death * pmax(runif(n, 0.5, 1), 
+##         1 - cens)), event = 1 - cens)
+##     return(surv)
+## }
+## <environment: namespace:CoxHD>
+```
+
+```r
 surv = CoxHD:::SimSurv(risk = risk)
 plot(survfit(surv ~1))
 ```
 
+![plot of chunk survival](figure/survival.png) 
+
 Maximal concordance
 
-```{r }
+
+```r
 survConcordance(surv ~ risk)
+```
+
+```
+## Call:
+## survConcordance(formula = surv ~ risk)
+## 
+##   n= 1000 
+## Concordance= 0.7392 se= 0.01574
+## concordant discordant  tied.risk  tied.time   std(c-d) 
+##     160759      56707          0          0       6848
 ```
 
 ### Fit model
 
-```{r fit}
+
+```r
 fit = CoxRFX(Z, surv, groups = groups)
 
 fits <- lapply(1:10, function(x){
@@ -121,7 +301,8 @@ fits <- lapply(1:10, function(x){
 
 Plot estimates
 
-```{r plotEstimates, fig.height=8, fig.width=8}
+
+```r
 par(mfrow=c(2,2))
 boxplot(coef(fit) ~ groups)
 
@@ -135,25 +316,67 @@ plot(a, coef(fit),  col= brewer.pal(5,"Set1")[groups])
 abline(0,1)
 ```
 
+![plot of chunk plotEstimates](figure/plotEstimates.png) 
+
 Compared to standard coxph
 
-```{r fig.height=4, fig.width=4}
+
+```r
 coxfit <- coxph(surv ~ Z)
+```
+
+```
+## Warning: Loglik converged before variable  27 ; beta may be infinite. 
+## Warning: X matrix deemed to be singular; variable 145 189
+```
+
+```r
 plot(a, coef(coxfit), pch="")
 abline(0,1)
 arrows(a,coef(coxfit),a, coef(fit), length=0.1)
+```
+
+```
+## Warning: zero-length arrow is of indeterminate angle and so skipped
+## Warning: zero-length arrow is of indeterminate angle and so skipped
+## Warning: zero-length arrow is of indeterminate angle and so skipped
+## Warning: zero-length arrow is of indeterminate angle and so skipped
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
+
+```r
 mean((a-coef(fit))^2)
+```
+
+```
+## [1] 0.008938
+```
+
+```r
 mean((a-coef(coxfit))^2)
+```
+
+```
+## [1] NA
 ```
 
 Risk contributions
 
-```{r riskContributions, fig.height=4, fig.width=4}
+
+```r
 estRiskComponents <- PartialRisk(fit)
 estRisk <- rowSums(estRiskComponents)
 plot(estRisk, risk)
+```
+
+![plot of chunk riskContributions](figure/riskContributions1.png) 
+
+```r
 plot(survfit(surv ~ cut(estRisk, quantile(estRisk, seq(0,1,l=4)))))
 ```
+
+![plot of chunk riskContributions](figure/riskContributions2.png) 
 
 ### Variance components
 The variance of the risk can be written as
@@ -184,12 +407,36 @@ where $\Lambda_{gh} = \sum_{j \in g}\sum_{k \in h} \beta_j \beta_k {\Sigma_X}_{j
 $$ Var[\lambda] \approx \sum_g \Lambda_{gg} + E[\sigma^2_0].$$
 The actual implementation is straightforward:
 
-```{r }
+
+```r
 VarianceComponents
+```
+
+```
+## function (fit, newX = fit$X, groups = fit$groups, type = c("diag", 
+##     "rowSums")) 
+## {
+##     risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
+##     type <- match.arg(type)
+##     newX <- as.matrix(newX - rep(colMeans(newX), each = nrow(newX)))
+##     residual <- rowSums((newX %*% fit$var) * newX)
+##     c <- cov(risk, use = "complete")
+##     if (type == "diag") 
+##         x <- diag(c)
+##     else x <- rowSums(c)
+##     return(c(x, residual = mean(residual)))
+## }
+## <environment: namespace:CoxHD>
+```
+
+```r
 varComp <- VarianceComponents(fit)
 pie(varComp,main = "Variance components")
+```
 
-```{r dotchart, fig.height=5, fig.width=5}
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+
+```r
 comp <- lapply(1:10, function(i){
 			surv <-  CoxHD:::SimSurv(risk = risk)
 			fit <-  CoxRFX(Z, surv, groups = groups, sigma0 = 0.1, nu=0)
@@ -204,10 +451,13 @@ for(v in comp)
 legend("topright", pch=c(19,1), c("True","Estd"), bty="n")
 ```
 
+![plot of chunk dotchart](figure/dotchart.png) 
+
 ### Comparison to frailty models
 For a factorial set of covariates (i.e., $X_{ij} \in \{0,1\}; \sum_j X_{i,j}=1 \forall i$), the model is equivalent to a frailty model
 
-```{r frailty, fig.height=8, fig.width=8}
+
+```r
 set.seed(42)
 par(mfrow=c(3,3))
 for(nLevels in c(5,10,50))
@@ -230,6 +480,13 @@ for(nLevels in c(5,10,50))
 	}
 ```
 
+```
+## Warning: Did not converge after50iterations.
+## Warning: Did not converge after50iterations.
+```
+
+![plot of chunk frailty](figure/frailty.png) 
+
 ## Missing data
 If we a proportion missing data $X_m$ and observed data $X_o$, we can impute predictions using the correlation structure $\Sigma_X$ of the training data set.
 Under normality assumptions one can use the covariance matrix from the training data to obtain the conditional (posterior) distribution
@@ -249,16 +506,56 @@ The uncertainty in $\beta$ introduces a second term
 \[ Var[\lambda | X_o] = Var[\lambda | X_o, \beta ] + (X_o - \mu_o, \mu_m^* - \mu_m)^T \Sigma_\beta (X_o -\mu_o, \mu^*_m -\mu_m). \]
 The implementation is
 
-```{r predictRiskMissing}
+
+```r
 PredictRiskMissing
+```
+
+```
+## function (fit, newX = fit$X, var = c("var", "var2")) 
+## {
+##     var <- match.arg(var)
+##     Sigma <- cov(fit$X)
+##     mu <- colMeans(fit$X)
+##     beta <- fit$coefficients
+##     .predict <- function(newX, beta, Sigma, mu) {
+##         missing <- is.na(newX)
+##         expectedX <- newX
+##         if (any(missing)) {
+##             s <- Sigma[missing, !missing] %*% MASS::ginv(Sigma[!missing, 
+##                 !missing])
+##             expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - 
+##                 mu[!missing])
+##             varianceRisk <- beta[missing] %*% (Sigma[missing, 
+##                 missing] - s %*% Sigma[!missing, missing]) %*% 
+##                 beta[missing]
+##         }
+##         else {
+##             varianceRisk <- 0
+##         }
+##         expectedRisk <- expectedX %*% beta
+##         e <- expectedX - mu
+##         varianceRisk <- e %*% fit[[var]][1:length(fit$coefficients), 
+##             1:length(fit$coefficients)] %*% e + varianceRisk
+##         return(c(expectedRisk, varianceRisk))
+##     }
+##     predictions <- t(apply(newX, 1, .predict, beta, Sigma, mu))
+##     colnames(predictions) <- c("Expected", "Variance")
+##     return(predictions)
+## }
+## <environment: namespace:CoxHD>
 ```
 
 If nothing is missing this is equivalent to the standard variance estimates of the glm predictors $\sigma^2_i = X_ij {\Sigma_\beta}_{jk} X_ik$:
 
-```{r predict, fig.height=4, fig.width=4}
-plot(PredictRiskMissing(fit)[,2], predict(fit, se.fit=TRUE)$se.fit^2, xlab = "sigma^2 CoxHD", ylab="sigma^2 coxph")
 
-```{r missing, fig.height=4, fig.width=8, fig.show="asis"}
+```r
+plot(PredictRiskMissing(fit)[,2], predict(fit, se.fit=TRUE)$se.fit^2, xlab = "sigma^2 CoxHD", ylab="sigma^2 coxph")
+```
+
+![plot of chunk predict](figure/predict.png) 
+
+```r
 for(m in c(0, 0.05, 0.1, 0.5, 0.75, 0.9, 0.95)){
 	par(bty="L", mfrow=c(1,2))
 	nNewX <- 500
@@ -273,8 +570,11 @@ for(m in c(0, 0.05, 0.1, 0.5, 0.75, 0.9, 0.95)){
 	plot(survfit(surv[1:nNewX] ~ (p[,1] >  median(p[,1]))), xlab="Time", ylab="Survival")
 	legend("topright", bty="n",paste("C = ", round(rcorr.cens(-p[,1], surv[1:nNewX])[1],2), collapse=""))
 }
+```
 
-```{r rho, fig.height=4, fig.width=10, fig.show="asis"}
+![plot of chunk missing](figure/missing1.png) ![plot of chunk missing](figure/missing2.png) ![plot of chunk missing](figure/missing3.png) ![plot of chunk missing](figure/missing4.png) ![plot of chunk missing](figure/missing5.png) ![plot of chunk missing](figure/missing6.png) ![plot of chunk missing](figure/missing7.png) 
+
+```r
 library(Matrix)
 for(rho in -4:-1){
 	m <- 0.75
@@ -300,4 +600,6 @@ for(rho in -4:-1){
 	legend("topright", bty="n",paste("C = ", round(rcorr.cens(-p[,1], s[1:nNewX])[1],2), collapse=""))
 }
 ```
+
+![plot of chunk rho](figure/rho1.png) ![plot of chunk rho](figure/rho2.png) ![plot of chunk rho](figure/rho3.png) ![plot of chunk rho](figure/rho4.png) 
 

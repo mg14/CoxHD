@@ -5,7 +5,7 @@
   CoxRFX(X, surv, groups = rep(1, ncol(X)),
     which.mu = unique(groups), tol = 0.001, max.iter = 50,
     sigma0 = 0.1, nu = 0, penalize.mu = FALSE,
-    sigma.hat = c("MLE", "REML", "df", "BLUP"),
+    sigma.hat = c("df", "MLE", "REML", "BLUP"),
     verbose = FALSE)
 }
 \arguments{
@@ -33,8 +33,8 @@
   hyperprior on the group means.}
 
   \item{sigma.hat}{Which estimator to use for the
-  variances. Default MLE. Other possibilities include REML
-  and BLUP.}
+  variances. Default df, other possibilities include MLE,
+  REML and BLUP, see details.}
 
   \item{verbose}{Gives more output.}
 }
@@ -52,7 +52,26 @@
   situation where the frailty covariates are not a factor,
   but can be overlapping groups.
 }
+\details{
+  Different estimators exist for the variances sigma2. The
+  default is "df", as used by Perperoglou (2014). In M-step
+  of the algorithm, this uses $\hat\sigma^2_g = \beta_g
+  \beta_g^T/df_g$, where the degrees of freedom df_g = $\tr
+  H_{gg}$ are the trace of the Hessian matrix over the
+  elements of group $g$. Alternatives are MLE, REML, and
+  BLUP, as defined by Therneau et al. (2003). Simulations
+  indicate that the 'df' method is most accurate.
+}
 \author{
   mg14
+}
+\references{
+  A. Perperoglou (2014). Cox models with dynamic ridge
+  penalties on time-varying effects of the covariates. Stat
+  Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921 Terry
+  M Therneau, Patricia M Grambsch & V. Shane Pankratz
+  (2003) Penalized Survival Models and Frailty, Journal of
+  Computational and Graphical Statistics, 12:1, 156-175,
+  http://dx.doi.org/10.1198/1061860031365
 }
 

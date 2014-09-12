@@ -39,8 +39,8 @@ library(mvtnorm)
 #' which are implemented in R using the ridge() function in coxph().
 #' 
 #' To estimate $\sigma_g^2$ we can then iterate between the MAP estimates $\beta^*$ and
-#' $$\sigma_g^2 \mid \beta_j^*,j\in g = (\sum_j\beta_j^2 +r )/ |g|$$
-#' where $H$ being the Hessian of the partial likelihood. The parameter $r = \mathrm{tr} [(H_{gg})^{-1}]$ yields the MLE estimate. Other choices of $r$ are also possible.
+#' $$\sigma_g^2 \mid \beta_j^*,j\in g = \frac{\sum_j\beta_j^2 }{df} $$
+#' where $df$ are the effective degrees of freedom, $df = \mathrm{tr} [(H_{gg}+\sigma_g^2 I)(H_{gg})^{-1}]$, $H$ being the Hessian of the total likelihood, evaluated for elements of group $g$.
 #' 
 #' Optionally one may define a hyperprior for $\sigma^2_g \sim \operatorname{si}\chi^2(\nu, \sigma_0^2)$, which can help stabilize the estimates.
 #' 

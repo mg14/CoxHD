@@ -48,13 +48,18 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' @param sigma0 The variance of a si-chisq hyperprior on the variances.
 #' @param nu The df of the variance hyperprior. Default = 0, that is no hyperprior.
 #' @param penalize.mu Wether to define an N(0,tau) hyperprior on the group means.
-#' @param sigma.hat Which estimator to use for the variances. Default MLE. Other possibilities include REML and BLUP. 
+#' @param sigma.hat Which estimator to use for the variances. Default df, other possibilities include MLE, REML and BLUP, see details.
 #' @param verbose Gives more output.
+#' @details Different estimators exist for the variances sigma2. The default is "df", as used by Perperoglou (2014). In M-step of the algorithm, this uses $\hat\sigma^2_g = \beta_g \beta_g^T/df_g$, where the degrees 
+#' of freedom df_g = $\tr H_{gg}$ are the trace of the Hessian matrix over the elements of group $g$. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). Simulations indicate that the 'df' method
+#' is most accurate.
+#' @references A. Perperoglou (2014). Cox models with dynamic ridge penalties on time-varying effects of the covariates. Stat Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921
+#' Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz (2003) Penalized Survival Models and Frailty, Journal of Computational and Graphical Statistics, 12:1, 156-175, http://dx.doi.org/10.1198/1061860031365
 #' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means)
 #' 
 #' @author mg14
 #' @export
-CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("MLE","REML","df","BLUP"), verbose=FALSE){
+CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("df","MLE","REML","BLUP"), verbose=FALSE){
 	if(class(X)=="data.frame")
 		X = as.matrix(X)
 	sigma.hat = match.arg(sigma.hat)

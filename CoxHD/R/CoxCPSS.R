@@ -20,6 +20,9 @@
 #' @param level The level for P-value adjustments.
 #' @param simultaneous TRUE for complementary pairs stability selection. Needed for type-1 error control
 #' @param which.error Indeces of covariates used for estimating the selection probability under the null. Default = 1:ncol(X).
+#' @references R. D. Shah and R. J. Samworth (2013). Variable selection with error control: another look at stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 75:55--80. http://dx.doi.org/10.1111/j.1467-9868.2011.01034.x
+#' 
+#' N. Meinshausen and P. Bühlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
 #' @return CoxCPSS
 #' 
 #' @author mg14

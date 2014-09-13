@@ -53,12 +53,15 @@
   but can be overlapping groups.
 }
 \details{
-  Different estimators exist for the variances sigma2. The
-  default is "df", as used by Perperoglou (2014). In M-step
-  of the algorithm, this uses $\hat\sigma^2_g = \beta_g
-  \beta_g^T/df_g$, where the degrees of freedom df_g = $\tr
-  H_{gg}$ are the trace of the Hessian matrix over the
-  elements of group $g$. Alternatives are MLE, REML, and
+  The values of the means mu_g are estimated using the
+  rowSums of X (within in group) as auxillary variables.
+
+  Different estimators exist for the variances sigma2_g:
+  The default is "df", as used by Perperoglou (2014). In
+  the M-step of the algorithm, this uses sigma^2_g = beta_g
+  beta_g^T/df_g, where the degrees of freedom df_g = tr
+  H_{gg} are the trace of the Hessian matrix over the
+  elements of group g. Alternatives are MLE, REML, and
   BLUP, as defined by Therneau et al. (2003). Simulations
   indicate that the 'df' method is most accurate.
 }
@@ -68,8 +71,9 @@
 \references{
   A. Perperoglou (2014). Cox models with dynamic ridge
   penalties on time-varying effects of the covariates. Stat
-  Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921 Terry
-  M Therneau, Patricia M Grambsch & V. Shane Pankratz
+  Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921
+
+  Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz
   (2003) Penalized Survival Models and Frailty, Journal of
   Computational and Graphical Statistics, 12:1, 156-175,
   http://dx.doi.org/10.1198/1061860031365

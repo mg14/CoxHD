@@ -50,10 +50,13 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' @param penalize.mu Wether to define an N(0,tau) hyperprior on the group means.
 #' @param sigma.hat Which estimator to use for the variances. Default df, other possibilities include MLE, REML and BLUP, see details.
 #' @param verbose Gives more output.
-#' @details Different estimators exist for the variances sigma2. The default is "df", as used by Perperoglou (2014). In M-step of the algorithm, this uses $\hat\sigma^2_g = \beta_g \beta_g^T/df_g$, where the degrees 
-#' of freedom df_g = $\tr H_{gg}$ are the trace of the Hessian matrix over the elements of group $g$. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). Simulations indicate that the 'df' method
+#' @details The values of the means mu_g are estimated using the rowSums of X (within in group) as auxillary variables. 
+#' 
+#' Different estimators exist for the variances sigma2_g: The default is "df", as used by Perperoglou (2014). In the M-step of the algorithm, this uses sigma^2_g = beta_g beta_g^T/df_g, where the degrees 
+#' of freedom df_g = tr H_{gg} are the trace of the Hessian matrix over the elements of group g. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). Simulations indicate that the 'df' method
 #' is most accurate.
 #' @references A. Perperoglou (2014). Cox models with dynamic ridge penalties on time-varying effects of the covariates. Stat Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921
+#' 
 #' Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz (2003) Penalized Survival Models and Frailty, Journal of Computational and Graphical Statistics, 12:1, 156-175, http://dx.doi.org/10.1198/1061860031365
 #' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means)
 #' 
@@ -93,6 +96,10 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 								sumTerm), 
 						collapse=" + ")))
 		fit <- coxph(formula)
+		if(any(is.na(coef(fit)))){
+			warning(paste("NA during estimation (iter: ", iter, ", coef: ", paste(which(is.na(coef(fit)[order(o)])), sep=","), ")", sep=""))
+			break
+		}
 		if(!is.null(which.mu))
 			mu[which.mu] <- coef(fit)[-(1:ncol(X))]
 		if(verbose) cat("mu", mu, "\n", sep="\t")
@@ -101,9 +108,9 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 		sigma2 = sapply(uniqueGroups, function(i){
 					index <- which(groups==i) #& fit$coefficients > beta.thresh
 					if(sigma.hat=="BLUP")
-						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + length(index) -1) #+ mean(diag(fit$var)[index])
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + length(index))
 					else if(sigma.hat=="df")
-						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + fit$df[i]) #+ mean(diag(fit$var)[index]) ## 
+						(nu * sigma0 + sum((fit$coefficients[index])^2 ))/(nu + fit$df[i])
 					else if(sigma.hat == "MLE")
 						(nu * sigma0 + sum((fit$coefficients[index])^2 ) + sum(diag(solve(solve(fit$var)[index,index]))))/(nu + length(index))
 					else if(sigma.hat == "REML")
@@ -124,26 +131,16 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
 		}
 		
-		#cat(sigma.mu,"\n")
 		beta = fit$coefficients
-		
-		#beta1[beta1 < beta.thresh] <- 0
-		#c = lapply(unique(groups), function(i) beta1[groups==i])
-		#for(i in 1:nGroups)
-		#	XX[[i]][,c[[i]]==0] <- 0
-		#cat(beta1,"\n")
-		#cat(sigma,"\n")
-		#cat(max(abs(beta - beta0ld)), max(abs(mu - mu0ld)), max(abs(sigma2 - sigma0ld)), "\n", sep="\t")
 		iter = iter+1
 	}
 	if(iter == max.iter)
-		warning("Did not converge after", max.iter, "iterations.")
+		warning("Did not converge after ", max.iter, " iterations.")
 	fit$iter[1] <- iter
 	fit$sigma2 = sigma0ld
 	names(fit$sigma2) <- uniqueGroups
 	fit$sigma2.mu = sigma2.mu
 	fit$mu = mu
-	#fit$sumX = sumX
 	fit$X = X[,order(o)]
 	fit$surv = surv
 	fit$groups = groups[order(o)]
@@ -154,7 +151,6 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))]
 	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))]
 	fit$means = fit$means[1:ncol(X)][order(o)]
-	#fit$delta = sapply(unique(groups), function(i) mean(groups==i & fit$coefficients < beta.thresh))
 	fit$coefficients <- fit$coefficients[1:ncol(X)][order(o)] + mu[fit$groups]
 	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
@@ -349,13 +345,14 @@ PredictRiskMissing <- function(fit, newX=fit$X, var = c("var","var2")){
 #' or randomly missing covariates. 
 #' @param X orignial data set
 #' @param newX The data.frame of covariates
+#' @param use Which observations to use for computing the covariance. See cov() for details.
 #' @return A data.frame of dim(newX) with imputed variables
 #' 
 #' @author mg14
 #' @export
-ImputeXMissing <- function(X, newX){
-	Sigma <- cov(X)
-	mu <- colMeans(X)
+ImputeXMissing <- function(X, newX=X, use="pairwise.complete.obs"){
+	Sigma <- cov(X, use=use)
+	mu <- colMeans(X, na.rm=TRUE)
 	l <- ncol(X)
 	
 	.impute <- function(newX, Sigma, mu){

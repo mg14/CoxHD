@@ -2,12 +2,16 @@
 \alias{ImputeXMissing}
 \title{Covariance-based imputation of missing variables}
 \usage{
-  ImputeXMissing(X, newX)
+  ImputeXMissing(X, newX = X,
+    use = "pairwise.complete.obs")
 }
 \arguments{
   \item{X}{orignial data set}
 
   \item{newX}{The data.frame of covariates}
+
+  \item{use}{Which observations to use for computing the
+  covariance. See cov() for details.}
 }
 \value{
   A data.frame of dim(newX) with imputed variables

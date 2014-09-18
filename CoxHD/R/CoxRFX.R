@@ -321,9 +321,14 @@ PredictRiskMissing <- function(fit, newX=fit$X, var = c("var","var2")){
 		missing <- is.na(newX)
 		expectedX <- newX
 		if(any(missing)){
-			s <- Sigma[missing, !missing] %*% MASS::ginv(Sigma[!missing, !missing])
-			expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - mu[!missing])
-			varianceRisk <- beta[missing] %*% (Sigma[missing,missing] - s %*%  Sigma[!missing, missing] ) %*% beta[missing]
+			if(all(missing)){
+				expectedX[missing] <- mu[missing]
+				varianceRisk <- beta[missing] %*% (Sigma[missing,missing]) %*% beta[missing]
+			}else{
+				s <- Sigma[missing, !missing, drop=FALSE] %*% MASS::ginv(Sigma[!missing, !missing, drop=FALSE])
+				expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - mu[!missing])
+				varianceRisk <- beta[missing] %*% (Sigma[missing,missing] - s %*%  Sigma[!missing, missing] ) %*% beta[missing]
+			}
 		}else{
 			varianceRisk <- 0
 		}
@@ -360,9 +365,14 @@ ImputeXMissing <- function(X, newX=X, use="pairwise.complete.obs"){
 		expectedX <- newX
 		varianceX <- rep(0,l)
 		if(any(missing)){
-			s <- Sigma[missing, !missing] %*% MASS::ginv(Sigma[!missing, !missing])
-			varianceX[missing] <- diag(s)
+			if(all(missing)){
+				expectedX[missing] <- mu[missing]
+				varianceX[missing] <- diag(Sigma)
+			}else{
+			s <- Sigma[missing, !missing, drop=FALSE] %*% MASS::ginv(Sigma[!missing, !missing, drop=FALSE])
+			varianceX[missing] <- diag(Sigma[missing, missing] - s %*% Sigma[!missing, missing])
 			expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - mu[!missing])
+			}
 		}
 		#return(cbind(expectedX, varianceX))
 		expectedX

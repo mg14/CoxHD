@@ -155,6 +155,14 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
+	## Fake call for predict.coxph and survfit.coxph
+	call <- match.call()
+	call["data"] <- call["X"]
+	formula <- as.formula(paste(as.character(call["surv"]),"~",paste(colnames(X)[order(o)], collapse="+")))
+	fit$formula <- formula
+	call["formula"] <- call("foo",formula=formula)["formula"]
+	fit$terms <- terms(formula)
+	fit$call <- call
 	class(fit) <- c("CoxRFX", class(fit))
 	return(fit)
 }

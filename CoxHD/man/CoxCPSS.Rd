@@ -7,7 +7,7 @@
     mc.cores = 1, pi.thr = 0.8,
     control = c("theta", "FDR", p.adjust.methods),
     level = 0.1, simultaneous = TRUE,
-    which.error = 1:ncol(X))
+    which.error = 1:ncol(X), keep.trying = TRUE)
 }
 \arguments{
   \item{X}{matrix or data.frame of the covariats}
@@ -42,6 +42,11 @@
   \item{which.error}{Indeces of covariates used for
   estimating the selection probability under the null.
   Default = 1:ncol(X).}
+
+  \item{keep.trying}{Sometimes the glmnet algorithm fails
+  to compute the entire LASSO trace. If keep.trying = TRUE
+  (default) the procedure will continue until
+  'bootstrap.samples' complete solutions were completed.}
 }
 \value{
   CoxCPSS

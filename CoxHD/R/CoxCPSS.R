@@ -20,6 +20,7 @@
 #' @param level The level for P-value adjustments.
 #' @param simultaneous TRUE for complementary pairs stability selection. Needed for type-1 error control
 #' @param which.error Indeces of covariates used for estimating the selection probability under the null. Default = 1:ncol(X).
+#' @param keep.trying Sometimes the glmnet algorithm fails to compute the entire LASSO trace. If keep.trying = TRUE (default) the procedure will continue until 'bootstrap.samples' complete solutions were completed.
 #' @references R. D. Shah and R. J. Samworth (2013). Variable selection with error control: another look at stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 75:55--80. http://dx.doi.org/10.1111/j.1467-9868.2011.01034.x
 #' 
 #' N. Meinshausen and P. Bühlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
@@ -27,7 +28,7 @@
 #' 
 #' @author mg14
 #' @export
-CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X)) {
+CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X), keep.trying = TRUE) {
 	d = floor(nrow(X)/2)
 	control <- match.arg(control)
 	
@@ -42,39 +43,47 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 	gc()
 	x <- as.matrix(X) - rep(colMeans(X), each=nrow(X))
 	
-	l <- mclapply(1:bootstrap.samples, function(b){
-				s <- sample(nrow(x), d, replace=F)
-				i <- sample(3,1)
-				w <- runif(ncol(x),alpha.weak,1)
-				#x / rep(pmax(apply(x,2,max),1), each=nrow(x))
-				x <- jitter(x) * rep(w, each=nrow(x))
-				bath <- try(glmnet(x=x[s,], y = as.matrix(data.frame(time = surv[s,1], status = surv[s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
-				res = list()
-				if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda))){
-					res[[1]] = coef(bath) != 0
-					rownames(res[[1]]) = colnames(X)
-					colnames(res[[1]]) = NULL
-				}
-				else{
-					cat("x")					
-					return(NULL)
-				}
-				if(simultaneous == TRUE){
-					bath <- try(glmnet(x=x[-s,], y = as.matrix(data.frame(time = surv[-s,1], status = surv[-s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
-					if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda)))
-					{
-						res[[2]] = coef(bath, s=lambda) != 0
-						rownames(res[[2]]) = colnames(X)
-						colnames(res[[2]]) = NULL
-					}
-					else{
-						cat("X")
-						return(NULL)
-					}
-				}
-				cat(".")
-				return(res)
-			}, mc.cores = mc.cores)
+	singleLasso <- function(b){
+		s <- sample(nrow(x), d, replace=F)
+		i <- sample(3,1)
+		w <- runif(ncol(x),alpha.weak,1)
+		#x / rep(pmax(apply(x,2,max),1), each=nrow(x))
+		x <- jitter(x) * rep(w, each=nrow(x))
+		bath <- try(glmnet(x=x[s,], y = as.matrix(data.frame(time = surv[s,1], status = surv[s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
+		res = list()
+		if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda))){
+			res[[1]] = coef(bath) != 0
+			rownames(res[[1]]) = colnames(X)
+			colnames(res[[1]]) = NULL
+		}
+		else{
+			cat("x")					
+			return(NULL)
+		}
+		if(simultaneous == TRUE){
+			bath <- try(glmnet(x=x[-s,], y = as.matrix(data.frame(time = surv[-s,1], status = surv[-s,2])), lambda=lambda, family="cox", standardize=FALSE, alpha = alpha.net, nlambda=250,  penalty.factor = penalty.factor))
+			if(class(bath)[1] != "try-error" & all(dim(coef(bath))==c(ncol(x), nlambda)))
+			{
+				res[[2]] = coef(bath, s=lambda) != 0
+				rownames(res[[2]]) = colnames(X)
+				colnames(res[[2]]) = NULL
+			}
+			else{
+				cat("X")
+				return(NULL)
+			}
+		}
+		cat(".")
+		return(res)
+	}
+	
+	l <- mclapply(1:bootstrap.samples, singleLasso, mc.cores = mc.cores)
+	
+	while(sum(!sapply(l, is.null)) < bootstrap.samples){
+		needDo <-  bootstrap.samples - sum(!sapply(l, is.null)) 
+		l <- c(l, mclapply(1:needDo, singleLasso, mc.cores = mc.cores))
+	}
+	
 	cat("\n")
 	Pr <- matrix(0, dim(path$beta)[1], length(lambda))
 	if(simultaneous) Pr_sim <- Pr

@@ -12,7 +12,6 @@ Description: This package includes two extensions of the Cox proportional
 Depends:
     glmnet,
     survival,
-    mice,
     parallel,
     MASS
 License: GPL-3

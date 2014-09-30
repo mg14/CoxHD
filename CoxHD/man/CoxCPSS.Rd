@@ -7,7 +7,7 @@
     mc.cores = 1, pi.thr = 0.8,
     control = c("theta", "FDR", p.adjust.methods),
     level = 0.1, simultaneous = TRUE,
-    which.error = 1:ncol(X), keep.trying = TRUE)
+    which.error = 1:ncol(X), keep.trying = TRUE, seed = 42)
 }
 \arguments{
   \item{X}{matrix or data.frame of the covariats}
@@ -47,6 +47,10 @@
   to compute the entire LASSO trace. If keep.trying = TRUE
   (default) the procedure will continue until
   'bootstrap.samples' complete solutions were completed.}
+
+  \item{seed}{The seed of the random number generator. Set
+  to 42 by default to assure reproducibility. Set to NULL
+  if you don't want it to be set.}
 }
 \value{
   CoxCPSS

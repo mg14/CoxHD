@@ -21,6 +21,7 @@
 #' @param simultaneous TRUE for complementary pairs stability selection. Needed for type-1 error control
 #' @param which.error Indeces of covariates used for estimating the selection probability under the null. Default = 1:ncol(X).
 #' @param keep.trying Sometimes the glmnet algorithm fails to compute the entire LASSO trace. If keep.trying = TRUE (default) the procedure will continue until 'bootstrap.samples' complete solutions were completed.
+#' @param seed The seed of the random number generator. Set to 42 by default to assure reproducibility. Set to NULL if you don't want it to be set.
 #' @references R. D. Shah and R. J. Samworth (2013). Variable selection with error control: another look at stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 75:55--80. http://dx.doi.org/10.1111/j.1467-9868.2011.01034.x
 #' 
 #' N. Meinshausen and P. Bühlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
@@ -28,9 +29,12 @@
 #' 
 #' @author mg14
 #' @export
-CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X), keep.trying = TRUE) {
+CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X), keep.trying = TRUE, seed=42) {
 	d = floor(nrow(X)/2)
 	control <- match.arg(control)
+	
+	if(!is.null(seed))
+		set.seed(42)
 	
 	#### GLMNET dry run
 	alpha.net <- 1 ## 1: LASSO, <1 : elastic net
@@ -164,7 +168,10 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 		pr <- Pr[,i]
 		t <- round(theta[i],2)
 		coxCPSS$Pval <- P[pr * M +1,t*100 +1]
+		coxCPSS$Pval[coxCPSS$penalty.factor==0] <- NA
 		names(coxCPSS$Pval) <- rownames(Pr)
+		coxCPSS$adj.Pval <- p.adjust(coxCPSS$Pval, method=control)
+		names(coxCPSS$adj.Pval) <- rownames(Pr)
 	}
 	coxCPSS$Pi <- apply(Pr[,coxCPSS$Lambda], 1, max)
 	coxCPSS$control <- control
@@ -213,7 +220,7 @@ plot.CoxCPSS = function(x, xlab='1/lambda', ylab="Selection probability", lty = 
 #' @author mg14
 #' @export
 CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
-	fitMain <- CoxCPSS(X, surv, control="BH")
+	fitMain <- CoxCPSS(X, surv, control="BH", ...)
 	w <- which(fitMain$Pi > fitMain$pi.thr)
 	i <- intersect(scope, w)
 	I <- MakeInteractions(X[,i],X[,i])[,as.vector(upper.tri(matrix(0,ncol=length(i), nrow=length(i))))]
@@ -224,6 +231,13 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
 	fitInt$Pi0 <- fitMain$Pi
 	fitInt$Pval0 <- fitMain$Pval
+	fitInt$adj.Pval0 <- fitMain$adj.Pval
+	fitInt$Pi1 <- fitInt$Pi
+	fitInt$Pval1 <- fitInt$Pval
+	fitInt$adj.Pval1 <- fitMain$adj.Pval
+	fitInt$Pi[w] <- fitInt$Pi0[w]
+	fitInt$Pval[w] <- fitInt$Pval0[w]	
+	fitInt$adj.Pval[w] <- fitInt$adj.Pval0[w]
 	return(fitInt)
 }
 
@@ -235,7 +249,7 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 #' @export
 print.CoxCPSS <- function(x){
 	cat("\nStability selection:\n")
-	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("Selection Prob. ", x$Pi[which(x$Pi>x$pi.thr)])), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
+	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("P[select] ", x$Pi[which(x$Pi>x$pi.thr)])), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))),format(c("adj. P ", format(x$adj.Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
 	cat("\n")
 	cat("Corresponding coxph:\n")
 	print(x$coxph)

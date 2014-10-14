@@ -5,9 +5,10 @@
   CoxCPSS(X, surv, bootstrap.samples = 50, nlambda = 250,
     alpha.weak = 0.5, penalty.factor = rep(1, ncol(X)),
     mc.cores = 1, pi.thr = 0.8,
-    control = c("theta", "FDR", p.adjust.methods),
+    control = c("BH", "theta", "FDR", p.adjust.methods),
     level = 0.1, simultaneous = TRUE,
-    which.error = 1:ncol(X), keep.trying = TRUE, seed = 42)
+    which.error = 1:ncol(X), keep.trying = TRUE, seed = 42,
+    coxph = TRUE)
 }
 \arguments{
   \item{X}{matrix or data.frame of the covariats}
@@ -51,6 +52,9 @@
   \item{seed}{The seed of the random number generator. Set
   to 42 by default to assure reproducibility. Set to NULL
   if you don't want it to be set.}
+
+  \item{coxph}{Wether to fit a coxph model using the
+  selected variables.}
 }
 \value{
   CoxCPSS

@@ -22,6 +22,7 @@
 #' @param which.error Indeces of covariates used for estimating the selection probability under the null. Default = 1:ncol(X).
 #' @param keep.trying Sometimes the glmnet algorithm fails to compute the entire LASSO trace. If keep.trying = TRUE (default) the procedure will continue until 'bootstrap.samples' complete solutions were completed.
 #' @param seed The seed of the random number generator. Set to 42 by default to assure reproducibility. Set to NULL if you don't want it to be set.
+#' @param coxph Wether to fit a coxph model using the selected variables.
 #' @references R. D. Shah and R. J. Samworth (2013). Variable selection with error control: another look at stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 75:55--80. http://dx.doi.org/10.1111/j.1467-9868.2011.01034.x
 #' 
 #' N. Meinshausen and P. Bühlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
@@ -29,7 +30,8 @@
 #' 
 #' @author mg14
 #' @export
-CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X), keep.trying = TRUE, seed=42) {
+CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, penalty.factor = rep(1,ncol(X)), mc.cores=1, pi.thr=0.8, control = c("BH","theta","FDR", p.adjust.methods), level=0.1,  simultaneous = TRUE, which.error = 1:ncol(X), keep.trying = TRUE, seed=42, coxph=TRUE) {
+	call <- match.call()
 	d = floor(nrow(X)/2)
 	control <- match.arg(control)
 	
@@ -114,8 +116,11 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 	class(res) = "CoxCPSS"
 
 	res <- ErrorControlCPSS(res, control = control, level = level)
-	res$coxph <- coxph(res$surv ~ ., data=res$X[,which(res$Pi > pi.thr)])
-	
+	if(coxph){
+		c <- call("coxph", formula= formula(paste(as.character(call["surv"]) , "~", paste(names(which(res$Pi > pi.thr)),collapse="+"))))
+		c["data"] <- call["X"]
+		res$coxph <- eval(c)
+	}
 	return(res)
 }
 
@@ -220,15 +225,16 @@ plot.CoxCPSS = function(x, xlab='1/lambda', ylab="Selection probability", lty = 
 #' @author mg14
 #' @export
 CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
-	fitMain <- CoxCPSS(X, surv, control="BH", ...)
+	fitMain <- CoxCPSS(X, surv, control="BH", coxph=FALSE, ...)
 	w <- which(fitMain$Pi > fitMain$pi.thr)
 	i <- intersect(scope, w)
 	I <- MakeInteractions(X[,i],X[,i])[,as.vector(upper.tri(matrix(0,ncol=length(i), nrow=length(i))))]
 	I <- I[,colSums(I) > 0]
 	Z <- cbind(X, I)
 	penalty <- rep(1, ncol(Z))
-	penalty[i] <- 0
-	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", ...)
+	penalty[w] <- 0
+	fitInt <- CoxCPSS(Z, surv, penalty.factor = penalty, control = "BH", seed=NULL, coxph=FALSE,...)
+
 	fitInt$Pi0 <- fitMain$Pi
 	fitInt$Pval0 <- fitMain$Pval
 	fitInt$adj.Pval0 <- fitMain$adj.Pval
@@ -238,6 +244,12 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	fitInt$Pi[w] <- fitInt$Pi0[w]
 	fitInt$Pval[w] <- fitInt$Pval0[w]	
 	fitInt$adj.Pval[w] <- fitInt$adj.Pval0[w]
+	
+	call <- match.call()
+	c <- call("coxph", formula= formula(paste(as.character(call["surv"]) , "~", paste(names(which(fitInt$Pi > fitInt$pi.thr)),collapse="+"))))
+	c["data"] <- call["X"]
+	fitInt$coxph <- eval(c)
+	
 	return(fitInt)
 }
 
@@ -249,7 +261,7 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 #' @export
 print.CoxCPSS <- function(x){
 	cat("\nStability selection:\n")
-	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("P[select] ", x$Pi[which(x$Pi>x$pi.thr)])), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))),format(c("adj. P ", format(x$adj.Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
+	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("P[select] ", format(x$Pi[which(x$Pi>x$pi.thr)], digits=2))), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))),format(c("adj. P ", format(x$adj.Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
 	cat("\n")
 	cat("Corresponding coxph:\n")
 	print(x$coxph)

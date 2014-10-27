@@ -156,8 +156,13 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 		coxCPSS$Lambda <- which(theta <= level)
 	}else if(control %in% p.adjust.methods){
 		P <- sapply(seq(0,round(max(theta),2),.01), function(t){
-					if(t > 0 & t < .49) ## TODO: why not .5?
-						c(1,minD(t, M/2))
+					if(t > 0 & t < .49){ ## TODO: why not .5?
+						t <- try(c(1,minD(t, M/2))) ## TODO: Bugfix/what happens for large M..?
+						if(class(t)!="try-error")
+							t
+						else
+							rep(1,M+1)
+					}
 					else if( t >= .49)
 						rep(1,M+1)
 					else

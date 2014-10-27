@@ -190,11 +190,12 @@ PartialRisk <- function(fit, newX=fit$X, groups=fit$groups) {
 #' 
 #' @author mg14
 #' @export
-PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups) {
+PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups, var = c("var2","var")) {
+	var <- match.arg(var)
 	newX <- newX - rep(colMeans(newX), each=nrow(newX))
 	sapply(levels(groups), function(x) {
 				ix <- groups == x
-				rowSums((as.matrix(newX[,ix, drop=FALSE]) %*% fit$var[ix,ix]) * as.matrix(newX[,ix, drop=FALSE]))
+				rowSums((as.matrix(newX[,ix, drop=FALSE]) %*% fit[[var]][ix,ix]) * as.matrix(newX[,ix, drop=FALSE]))
 			})
 }
 
@@ -314,12 +315,12 @@ PartialC <- function(fit, newX = fit$X, newSurv=fit$surv, groups=fit$groups){
 #' Predict risk with missing data
 #' @param fit A CoxRFX fit
 #' @param newX 
-#' @param var Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter seems more accurate, but may underestimate the variance.
+#' @param var Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.
 #' @return A data.frame with columns Expected and Variance 
 #' 
 #' @author mg14
 #' @export
-PredictRiskMissing <- function(fit, newX=fit$X, var = c("var","var2")){
+PredictRiskMissing <- function(fit, newX=fit$X, var = c("var2","var")){
 	var <- match.arg(var)
 	Sigma <- cov(fit$X)
 	mu <- colMeans(fit$X)

@@ -138,3 +138,17 @@ MakeInteger <- function(F){
 	colnames(res) <- levels(F)
 	res + 0
 }
+
+MakeTimeDependent <- function(dataFrame, timeTpl, timeSurv = dataFrame$time, time0Surv = rep(0, nrow(dataFrame)), event=dataFrame$event){
+	w <- which(timeTpl < timeSurv & timeTpl > time0Surv)
+	index <- c(1:nrow(dataFrame), w) 
+	d <- dataFrame[index,]
+	d$index <- index
+	d$time1 <- c(time0Surv, timeTpl[w])
+	d$time2 <- c(pmin(timeSurv, timeTpl, na.rm=TRUE), timeSurv[w])
+	d$transplant <- c(rep(0,nrow(dataFrame)), rep(1, length(w)))
+	e <- c(event, event[w])
+	e[w] <- 0
+	d$event <- e
+	return(d)
+}

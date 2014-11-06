@@ -49,7 +49,7 @@ SimSurvNonp <- function(risk, surv, H0 = basehaz(coxph(surv ~ 1))) {
 #' @param nData 
 #' @param percentMissing 
 #' @param ... 
-#' @return A data.frame with extrapolatied data
+#' @return A data.frame with extrapolated data
 #' 
 #' @author mg14
 #' @export

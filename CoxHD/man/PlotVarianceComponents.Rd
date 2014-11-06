@@ -4,7 +4,7 @@
 \usage{
   PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
     groups = fit$groups, type = "rowSums", conf.int = TRUE,
-    digits = 2)
+    digits = 2, var = c("var2", "var"))
 }
 \arguments{
   \item{fit}{The CoxRFX fit}
@@ -19,6 +19,9 @@
   actual variance of the linear predictor, but can be
   negative. Plotting just the 'diag'onal elements
   guarantees positive components}
+
+  \item{var}{Which variance estimated to take for the
+  average prediction error. Choices are var2 and var.}
 }
 \value{
   NULL

@@ -4,14 +4,6 @@
 ###############################################################################
 
 
-GetPairs <- function(names, scope){
-	pairs <- strsplit(scope, "\\.")
-	lapply(pairs, function(s){
-				a <- grep(paste(s[1],"$", sep=""), names, value=TRUE)
-				b <- grep(paste(s[2],"$", sep=""), names, value=TRUE)
-				c(a,b)
-			})
-}
 
 #' Test for interactions
 #' A coxph() model is used to systematically test for interactions. Returned are both a Wald test and a likelihood ratio test, 
@@ -65,53 +57,6 @@ TestInteractions <- function(data, survival, pairs, whichMain = colnames(data), 
 	return(result)
 }
 
-DensityEstimates <- function(coxRFX, newx = range(coef(coxRFX)), n = 100){
-	x <- seq(newx[1], newx[2], length.out=n)
-	c <- coef(coxRFX)
-	v <- diag(coxRFX$var)
-	z <- mapply(function(i,j) dnorm(x, i, j), c, sqrt(v))
-	sapply(levels(coxRFX$groups), function(g) rowMeans(z[,coxRFX$groups==g, drop=FALSE]))
-}
-
-
-#### Paralllelized stepwise forward selection
-parStep = function(X, surv, criterion = "AIC", max.iter = ncol(X), mc.cores=1, verbose=FALSE){
-	select = numeric()
-	loglik = numeric()
-	penalty = ifelse(criterion == "AIC",1,log(nrow(X))/2)
-	while(length(select) < max.iter){
-		k = length(select) + 1
-		scope = setdiff(1:ncol(X), select)
-		if(is.null(scope))
-			break
-		l = mclapply(scope, function(i) {
-					x = as.data.frame(X[,c(select,i)])
-					t = try(coxph(surv~., data=x)$loglik[2])
-					ifelse(class(t)!="try-error",t,-Inf)
-				}, mc.cores=mc.cores)
-		logliks = unlist(l)		
-		add = scope[which.max(logliks)]
-		if(k>1)
-			if(all(logliks <= loglik[k-1] + penalty))
-				break
-		loglik = c(loglik,max(logliks))
-		select = c(select,add)
-		if(verbose) cat(".")
-	}
-	if(verbose) cat("\n")
-	return(data.frame(select=select,loglik=loglik,AIC = - 2*loglik + 2 * 1:length(loglik), BIC = - 2 * loglik +  1:length(loglik) * log(nrow(X)) ))
-}
-
-#### Convert Pi to p-values
-pi2p = function(s, pi.thr=0.5){
-	q = colMeans(s$Pr)
-	p.conc = sapply(q, minD, B=s$bootstrap.samples)
-	Lambda = apply(p.conc, 2, function(x) which(x < 0.05)[1] )/(2*s$bootstrap.samples) < pi.thr
-	pi = apply(s$Pr,2,max)
-	p.val = c(1,minD(mean(pi), B = s$bootstrap.samples))[pi * 2 * s$bootstrap.samples +1]
-	return(data.frame(pi=pi, p.val=p.val))
-}
-
 
 #' Pairwise interactions.
 #' This function creates all pairwise interaction (product) terms of two data.frames()
@@ -139,16 +84,26 @@ MakeInteger <- function(F){
 	res + 0
 }
 
-MakeTimeDependent <- function(dataFrame, timeTpl, timeSurv = dataFrame$time, time0Surv = rep(0, nrow(dataFrame)), event=dataFrame$event){
-	w <- which(timeTpl < timeSurv & timeTpl > time0Surv)
+#' Split a data.frame by a time-dependent variable for use in a coxph model
+#' @param dataFrame A data frame
+#' @param timeEvent The time of the time-deependent covariate (assumed to be a simple event, such as a transplant).
+#' @param timeStop Start time for the survival object. Default: rep(0, nrow(dataFrame)).
+#' @param timeStart Stop time of the survival object. Default: dataFrame$time.
+#' @param status Status of the survival object (0=alive, 1=dead). Default: dataFrame$status.
+#' @return A data.frame with extra extra rows for observations after the event and extra columns time1, time2 (start and stop times), event for the event.
+#' 
+#' @author mg14
+#' @export
+MakeTimeDependent <- function(dataFrame, timeEvent, timeStop = dataFrame$time, timeStart = rep(0, nrow(dataFrame)), status=dataFrame$status){
+	w <- which(timeEvent < timeStop & timeEvent > timeStart)
 	index <- c(1:nrow(dataFrame), w) 
 	d <- dataFrame[index,]
 	d$index <- index
-	d$time1 <- c(time0Surv, timeTpl[w])
-	d$time2 <- c(pmin(timeSurv, timeTpl, na.rm=TRUE), timeSurv[w])
-	d$transplant <- c(rep(0,nrow(dataFrame)), rep(1, length(w)))
-	e <- c(event, event[w])
+	d$time1 <- c(timeStart, timeEvent[w])
+	d$time2 <- c(pmin(timeStop, timeEvent, na.rm=TRUE), timeStop[w])
+	d$event <- c(rep(0,nrow(dataFrame)), rep(1, length(w)))
+	e <- c(status, status[w])
 	e[w] <- 0
-	d$event <- e
+	d$status <- e
 	return(d)
 }

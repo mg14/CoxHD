@@ -2,7 +2,8 @@
 \alias{PartialRiskVar}
 \title{Variance (confidence intervals) of partial risk components}
 \usage{
-  PartialRiskVar(fit, newX = fit$X, groups = fit$groups)
+  PartialRiskVar(fit, newX = fit$X, groups = fit$groups,
+    var = c("var2", "var"))
 }
 \arguments{
   \item{fit}{The CoxRFX fit}

@@ -3,7 +3,8 @@
 \title{Variance components}
 \usage{
   VarianceComponents(fit, newX = fit$X,
-    groups = fit$groups, type = c("diag", "rowSums"))
+    groups = fit$groups, type = c("diag", "rowSums"),
+    var = c("var2", "var"))
 }
 \arguments{
   \item{fit}{The CoxRFX fit}
@@ -17,6 +18,9 @@
   that the components sum up to the actual variance, but
   could be negative in the case of collinearity. The two
   are equivalent}
+
+  \item{var}{Which variance estimate to take for the
+  average prediction error. Choices are var2 and var.}
 }
 \value{
   A vector containing the variance components

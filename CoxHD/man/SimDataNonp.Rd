@@ -15,7 +15,7 @@ A fraction percentMissing is set to NA and multiple imputation from the mice pac
   \item{...}{}
 }
 \value{
-  A data.frame with extrapolatied data
+  A data.frame with extrapolated data
 }
 \description{
   Non-parametric data extrapolations based on multiple

@@ -5,6 +5,18 @@
 
 <title>The Cox RFX model</title>
 
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
 <!-- Styles for R syntax highlighter -->
 <style type="text/css">
    pre .operator,
@@ -13,19 +25,21 @@
    }
 
    pre .literal {
-     color: rgb(88, 72, 246)
+     color: #990073
    }
 
    pre .number {
-     color: rgb(0, 0, 205);
+     color: #099;
    }
 
    pre .comment {
-     color: rgb(76, 136, 107);
+     color: #998;
+     font-style: italic
    }
 
    pre .keyword {
-     color: rgb(0, 0, 255);
+     color: #900;
+     font-weight: bold
    }
 
    pre .identifier {
@@ -33,7 +47,7 @@
    }
 
    pre .string {
-     color: rgb(3, 106, 7);
+     color: #d14;
    }
 </style>
 
@@ -44,7 +58,7 @@ hljs.initHighlightingOnLoad();
 </script>
 
 <!-- MathJax scripts -->
-<script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 
 
@@ -52,55 +66,65 @@ hljs.initHighlightingOnLoad();
 body, td {
    font-family: sans-serif;
    background-color: white;
-   font-size: 12px;
-   margin: 8px;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
 }
 
 tt, code, pre {
    font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
 }
 
-h1 { 
-   font-size:2.2em; 
+h1 {
+   font-size:2.2em;
 }
 
-h2 { 
-   font-size:1.8em; 
+h2 {
+   font-size:1.8em;
 }
 
-h3 { 
-   font-size:1.4em; 
+h3 {
+   font-size:1.4em;
 }
 
-h4 { 
-   font-size:1.0em; 
+h4 {
+   font-size:1.0em;
 }
 
-h5 { 
-   font-size:0.9em; 
+h5 {
+   font-size:0.9em;
 }
 
-h6 { 
-   font-size:0.8em; 
+h6 {
+   font-size:0.8em;
 }
 
 a:visited {
    color: rgb(50%, 0%, 50%);
 }
 
-pre {	
-   margin-top: 0;
-   max-width: 95%;
-   border: 1px solid #ccc;
-   white-space: pre-wrap;
+pre, img {
+  max-width: 100%;
 }
-
+pre {
+  overflow-x: auto;
+}
 pre code {
    display: block; padding: 0.5em;
 }
 
-code.r, code.cpp {
-   background-color: #F8F8F8;
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
 }
 
 table, td, th {
@@ -123,54 +147,54 @@ hr {
 }
 
 @media print {
-   * { 
-      background: transparent !important; 
-      color: black !important; 
-      filter:none !important; 
-      -ms-filter: none !important; 
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
    }
 
-   body { 
-      font-size:12pt; 
-      max-width:100%; 
-   }
-       
-   a, a:visited { 
-      text-decoration: underline; 
+   body {
+      font-size:12pt;
+      max-width:100%;
    }
 
-   hr { 
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
       visibility: hidden;
       page-break-before: always;
    }
 
-   pre, blockquote { 
-      padding-right: 1em; 
-      page-break-inside: avoid; 
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
    }
 
-   tr, img { 
-      page-break-inside: avoid; 
+   tr, img {
+      page-break-inside: avoid;
    }
 
-   img { 
-      max-width: 100% !important; 
+   img {
+      max-width: 100% !important;
    }
 
-   @page :left { 
-      margin: 15mm 20mm 15mm 10mm; 
-   }
-     
-   @page :right { 
-      margin: 15mm 10mm 15mm 20mm; 
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
    }
 
-   p, h2, h3 { 
-      orphans: 3; widows: 3; 
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
    }
 
-   h2, h3 { 
-      page-break-after: avoid; 
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
    }
 }
 </style>
@@ -196,25 +220,29 @@ library(mvtnorm)
 <p>To estimate survival we use an extension of the Cox proportional hazards model. In this model the hazard, given a set of covariates \(X\)
 is expressed as
 \[\lambda = \lambda_0(t) \exp(X \beta) \]
-where \(\beta\) denotes the risk coefficients. If \(X\) was an indicator matrix denoting the membership to one (and only one) of \(p\) groups, then the 
-random effects model assumes that the coefficients \(\beta_j\) are from a shared distribution
-\[\beta_j \sim N(0, \sigma^2).\]
-The usual reason for introducing a random effects model is to account for 
-relatedness among the effects across multiple groups, e.g. in a meta-analysis of multiple studies, or in population genetic analyses.</p>
+where \(\beta\) denotes the risk coefficients.The 
+random effects model assumes that the coefficients \(\beta_j\) are from a <strong>shared distribution</strong>
+\[\beta_j \sim N(\mu, \sigma^2).\]
+This assumption make the model a hierarchical model, which is often referred to as a random effects model. The assumption of a shared distribution with a finite variance effectively regularises
+the model and allows for estimating parameters even in  high-dimensional cases. </p>
 
-<p>Here we generalise the concept of factorial \(X\) by allowing multiple group memberships, but maintain the idea of a shared distribution of effect sizes. In this case the estimation of the 
-parameters become slightly more complicated, but can be achieved using an EM-type algorithm and exploiting that the shared prior imposes a ridge penalty.</p>
+<p>A second idea of our model is that our the set of covariates \(X = (X_1,&hellip;,X_g)\) can be split into \(g\) <strong>groups</strong>, each with a different distribution of effect sizes, 
+\[ \beta_j \sim N(\mu_g(j), \sigma^2_g(j))\].</p>
 
-<p>A second idea of our model is that our the set of covariates \(X = (X_1,&hellip;,X_g)\) can be split into \(g\) groups, each with a different distribution of effect sizes, 
-\[ \beta_j \sim N(\mu_g(j), \sigma^2_g(j)\].</p>
+<p>The means \(\mu_g\) can be estimated utilising the decomposition of the log-hazard, \(h_i = \sum_g h_{ig}\), \(h_{ig} = \sum_{j\in g} X_{ij}\beta_j =  \sum_{j\in g} X_{ij}(\beta_j - \mu_g) + \sum_{j\in g} X_{ij}\mu\). 
+So one can estimate each \(\mu_g\) as the coefficient of the introducing auxillary variables \(\bar X_g = \sum_{j\in g} X_{ij}\), which are simply the row-wise sums of the covariates of each group. </p>
 
-<p>To estimate parameters we explot that the constraint induced by the normal prior distributions is equivalent to a ridge penalty. This gives the MAP estimates
+<p>To estimate the centred parameters \(\beta'_j = \beta_j - \mu_{g(j)}\), we exploit that the constraint induced by the normal prior distributions is equivalent to a ridge penalty. 
+This gives the MAP estimates
 \[\beta_j^* \mid \sigma_g(j)^2, X = \beta_j^{ridge},\]
 which are implemented in R using the ridge() function in coxph().</p>
 
-<p>To estimate \(\sigma_g^2\) we can then iterate between the MAP estimates \(\beta^*\) and
+<p>To estimate the variances \(\sigma_g^2\) we can then iterate between the MAP estimates \(\beta^*\) and
 \[\sigma_g^2 \mid \beta_j^*,j\in g = \frac{\sum_j\beta_j^2 }{df} \]
 where \(df\) are the effective degrees of freedom, \(df = \mathrm{tr} [(H_{gg}+\sigma_g^2 I)(H_{gg})^{-1}]\), \(H\) being the Hessian of the total likelihood, evaluated for elements of group \(g\).</p>
+
+<p>The covariance of the coefficients \(\beta_j = \beta_j' + \mu_{g(j)}\) can be derived from the \((p+|g|) \times (p+|g|)\) covariance matrix of the coeffient vector \((\beta', \mu)\), 
+\(V = H^{-1} \mathcal{I} H^{-1}\), \(\Sigma_\beta = B^T V B\), where \(B = (\mathbb{1}_p, I(j\in g)\) maps \((\beta', \mu)\) to \(\beta\). </p>
 
 <p>Optionally one may define a hyperprior for \(\sigma^2_g \sim \operatorname{si}\chi^2(\nu, \sigma_0^2)\), which can help stabilize the estimates.</p>
 

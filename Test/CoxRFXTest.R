@@ -22,25 +22,30 @@ library(mvtnorm)
 #' To estimate survival we use an extension of the Cox proportional hazards model. In this model the hazard, given a set of covariates $X$
 #' is expressed as
 #' $$\lambda = \lambda_0(t) \exp(X \beta) $$
-#' where $\beta$ denotes the risk coefficients. If $X$ was an indicator matrix denoting the membership to one (and only one) of $p$ groups, then the 
-#' random effects model assumes that the coefficients $\beta_j$ are from a shared distribution
-#' $$\beta_j \sim N(0, \sigma^2).$$
-#' The usual reason for introducing a random effects model is to account for 
-#' relatedness among the effects across multiple groups, e.g. in a meta-analysis of multiple studies, or in population genetic analyses.
+#' where $\beta$ denotes the risk coefficients.The 
+#' random effects model assumes that the coefficients $\beta_j$ are from a **shared distribution**
+#' $$\beta_j \sim N(\mu, \sigma^2).$$
+#' This assumption make the model a hierarchical model, which is often referred to as a random effects model. The assumption of a shared distribution with a finite variance effectively regularises
+#' the model and allows for estimating parameters even in  high-dimensional cases. 
+#'  
+#' A second idea of our model is that our the set of covariates $X = (X_1,...,X_g)$ can be split into $g$ **groups**, each with a different distribution of effect sizes, 
+#' $$ \beta_j \sim N(\mu_g(j), \sigma^2_g(j))$$.
 #' 
-#' Here we generalise the concept of factorial $X$ by allowing multiple group memberships, but maintain the idea of a shared distribution of effect sizes. In this case the estimation of the 
-#' parameters become slightly more complicated, but can be achieved using an EM-type algorithm and exploiting that the shared prior imposes a ridge penalty.
+#' The means $\mu_g$ can be estimated utilising the decomposition of the log-hazard, $h_i = \sum_g h_{ig}$, $h_{ig} = \sum_{j\in g} X_{ij}\beta_j =  \sum_{j\in g} X_{ij}(\beta_j - \mu_g) + \sum_{j\in g} X_{ij}\mu$. 
+#' So one can estimate each $\mu_g$ as the coefficient of the introducing auxillary variables $\bar X_g = \sum_{j\in g} X_{ij}$, which are simply the row-wise sums of the covariates of each group. 
 #' 
-#' A second idea of our model is that our the set of covariates $X = (X_1,...,X_g)$ can be split into $g$ groups, each with a different distribution of effect sizes, 
-#' $$ \beta_j \sim N(\mu_g(j), \sigma^2_g(j)$$.
-#' 
-#' To estimate parameters we explot that the constraint induced by the normal prior distributions is equivalent to a ridge penalty. This gives the MAP estimates
+#' To estimate the centred parameters $\beta'_j = \beta_j - \mu_{g(j)}$, we exploit that the constraint induced by the normal prior distributions is equivalent to a ridge penalty. 
+#' This gives the MAP estimates
 #' $$\beta_j^* \mid \sigma_g(j)^2, X = \beta_j^{ridge},$$
 #' which are implemented in R using the ridge() function in coxph().
 #' 
-#' To estimate $\sigma_g^2$ we can then iterate between the MAP estimates $\beta^*$ and
+#' To estimate the variances $\sigma_g^2$ we can then iterate between the MAP estimates $\beta^*$ and
 #' $$\sigma_g^2 \mid \beta_j^*,j\in g = \frac{\sum_j\beta_j^2 }{df} $$
 #' where $df$ are the effective degrees of freedom, $df = \mathrm{tr} [(H_{gg}+\sigma_g^2 I)(H_{gg})^{-1}]$, $H$ being the Hessian of the total likelihood, evaluated for elements of group $g$.
+#' 
+#' The covariance of the coefficients $\beta_j = \beta_j' + \mu_{g(j)}$ can be derived from the $(p+|g|) \times (p+|g|)$ covariance matrix $V$ of the coeffient vector $(\beta', \mu)$, 
+#' $\Sigma_\beta = B^T V B$, where $B = (\mathbb{1}_p, I(j\in g)$ maps $(\beta', \mu)$ to $\beta$. There exist two different estimates of $V$, either $V=H^{-1}$ or  $V = H^{-1} \mathcal{I} H^{-1}$, but 
+#' we find that the former tends to be overly conservative.
 #' 
 #' Optionally one may define a hyperprior for $\sigma^2_g \sim \operatorname{si}\chi^2(\nu, \sigma_0^2)$, which can help stabilize the estimates.
 #' 
@@ -131,11 +136,12 @@ plot(estRisk, risk)
 plot(survfit(surv ~ cut(estRisk, quantile(estRisk, seq(0,1,l=4)))))
 
 #' ### Variance components
-#' The variance of the risk can be written as
+#' The variance of the log hazard $h = X \beta$ can be written as
 #' \[
 #' \begin{aligned}
-#' Var[\lambda] = Var[X \beta] &= Var_X E_\beta[X\beta] + E_X Var_\beta[X\beta] \cr
-#' &= Var_X [X E\beta^T] + E_X [ X^T \Sigma_\beta X]\cr 
+#' Var[h] &= E[Var[h|\beta]] + Var[E[h|\beta]] 
+#' &= E_\beta Var_X [X\beta] +  Var_\beta[E[X]\beta] \cr
+#' &= E_\beta [\beta^T \Sigma_X \beta] + E[X]^T \Sigma_\beta E[X]\cr 
 #' &= V + E[\sigma^2_0].
 #' \end{aligned}
 #' \]
@@ -144,7 +150,7 @@ plot(survfit(surv ~ cut(estRisk, quantile(estRisk, seq(0,1,l=4)))))
 #' It is tempting to approximate the moments of $\beta$ with the estimates from the fit. The covariance $\Sigma_X$ can be estimated across the rows of $X$. The covariance of $\beta$ can be estimated in the fitting process.
 #' \[
 #' \begin{aligned}
-#' Var[\lambda] & \approx Var_X [X^T \hat\beta] + E[X \hat\Sigma_\beta X] \cr
+#' Var[h] & \approx Var_X [X^T \hat\beta] + E[X \hat\Sigma_\beta X] \cr
 #' &= \hat\beta^T \Sigma_X \hat\beta + E[X^T \hat\Sigma_\beta X] 
 #' \end{aligned}
 #' \]

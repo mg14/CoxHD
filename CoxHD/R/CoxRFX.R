@@ -143,15 +143,16 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	fit$mu = mu
 	fit$X = X[,order(o)]
 	fit$surv = surv
+	B <- rbind(diag(1, ncol(X)),t(as.matrix(MakeInteger(groups)))) ## map from centred to uncentred coefficients 
 	fit$groups = groups[order(o)]
 	var = fit$var
 	var2 = fit$var2
-	fit$var = var[1:ncol(X),1:ncol(X)][order(o),order(o)]
-	fit$var2 = var2[1:ncol(X),1:ncol(X)][order(o),order(o)]
+	fit$var = (t(B) %*% var %*% B)[order(o),order(o)]
+	fit$var2 = (t(B) %*% var2 %*% B)[order(o),order(o)]
 	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))]
 	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))]
 	fit$means = fit$means[1:ncol(X)][order(o)]
-	fit$coefficients <- fit$coefficients[1:ncol(X)][order(o)] + mu[fit$groups]
+	fit$coefficients <- (fit$coefficients %*% B)[order(o)]
 	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
@@ -205,23 +206,25 @@ PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups, var = c("var2","v
 #' @param groups The groups, defaults to fit$groups
 #' @param type Take either the diagonal of the covariance matrix (default), or the rowSums. The latter guaranties that the
 #' components sum up to the actual variance, but could be negative in the case of collinearity. The two are equivalent 
+#' @param var Which variance estimate to take for the average prediction error. Choices are var2 and var.
 #' @return A vector containing the variance components
 #' 
 #' @author mg14
 #' @export
-VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","rowSums")){
+VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","rowSums"), var=c("var2","var")){
+	var <- match.arg(var)
 	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
 	type <- match.arg(type)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 	newX <- as.matrix(newX - rep(colMeans(newX), each=nrow(newX)))
-	residual <- rowSums((newX %*% fit$var) * newX)
+	error <- rowSums((newX %*% fit[[var]]) * newX)
 	
 	c <- cov(risk, use="complete")
 	if(type=="diag")
 		x <- diag(c)
 	else
 		x <- rowSums(c)
-	return(c(x, residual=mean(residual)))
+	return(c(x, mean.error=mean(error)))
 }
 
 #' Plot variance components
@@ -229,12 +232,15 @@ VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c(
 #' @param col The colors for each component
 #' @param groups the groups to be used, if different from the fitted ones.
 #' @param type The type of variance compnents: Either 'rowSums' (default) or 'diag'. Rowsums sum up to the actual variance of the linear predictor, but can be
-#' negative. Plotting just the 'diag'onal elements guarantees positive components  
+#' negative. Plotting just the 'diag'onal elements guarantees positive components
+#' @param var Which variance estimated to take for the average prediction error. Choices are var2 and var.
+  
 #' @return NULL
 #' 
 #' @author mg14
 #' @export
-PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2) {
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2, var=c("var2","var")) {
+	var <- match.arg(var)
 	if(is.null(names(col)))
 		names(col) <- levels(groups)
 	v <- VarianceComponents(fit, groups=groups, type=type)
@@ -243,7 +249,7 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 	vp <- v[v>0]
 	vn <- v[v<=0]
 	if(conf.int){
-		r <- paste( "+/-",round(colMeans(PartialRiskVar(fit, groups=groups))[o], digits))
+		r <- paste( "+/-",signif(colMeans(PartialRiskVar(fit, groups=groups, var=var))[o], 1))
 		rp <- r[v>0]
 		rn <- r[v<=0]
 	}else{
@@ -273,13 +279,13 @@ VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), in
 					for(ww in w)
 						r[,fit$groups[ww]] <- r[,fit$groups[ww]] - risk0[,ww]
 					idx <- !colnames(X) %in% w
-					residual <- rowSums((as.matrix(X[,idx]) %*% V[idx,idx]) * as.matrix(X[,idx]))
+					error <- rowSums((as.matrix(X[,idx]) %*% V[idx,idx]) * as.matrix(X[,idx]))
 					c <- cov(r, use="complete")
 					if(type=="diag")
 						x <- diag(c)
 					else
 						x <- rowSums(c)
-					return(c(x, residual=mean(residual)))
+					return(c(x, `avg.error`=mean(error)))
 				})
 	}else{
 		sapply(which.coef, function(i){

@@ -36,9 +36,8 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 
 #' Cox proportional hazards model with random effects
 #' 
-#' This functinon estimates a Cox proportional in which the parameters follow normal distributions. Multiple groups can be defined with different prior mean and variance. 
-#' The parameters of the prior distribution are estimated by an empirical Bayes approach.
-#' The model extends the shared frailty model implemented in the survival package to the situation where the frailty covariates are not a factor, but can be overlapping groups.  
+#' This functinon estimates a Cox proportional in which the parameters follow normal distributions as discussed by Therneau et al. (2003). Multiple groups can be defined with different prior mean and variance. 
+#' The variances of the joint distributions are efficiently estimated by an EM-type algorithm.
 #' @param X The data matrix (n x p)
 #' @param surv The survival object (n x 2)
 #' @param groups Optional groups as a factor (p) with l levels. Default = rep(1, n)
@@ -52,19 +51,31 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' @param verbose Gives more output.
 #' @details The values of the means mu_g are estimated using the rowSums of X (within in group) as auxillary variables. 
 #' 
-#' Different estimators exist for the variances sigma2_g: The default is "df", as used by Perperoglou (2014). In the M-step of the algorithm, this uses sigma^2_g = beta_g beta_g^T/df_g, where the degrees 
-#' of freedom df_g = tr H_{gg} are the trace of the Hessian matrix over the elements of group g. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). Simulations indicate that the 'df' method
-#' is most accurate.
-#' @references A. Perperoglou (2014). Cox models with dynamic ridge penalties on time-varying effects of the covariates. Stat Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921
+#' Different estimators exist for the variances sigma2_g: The default is "df", as used by Perperoglou (2014) and introduced by Schall (1991). In the M-step of the algorithm, this uses sigma^2_g = beta_g beta_g^T/df_g, where the degrees 
+#' of freedom df_g = tr H_{gg} are the trace of the Hessian matrix over the elements of group g. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). 
+#' Simulations indicate that the 'df' method is most accurate.
 #' 
-#' Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz (2003) Penalized Survival Models and Frailty, Journal of Computational and Graphical Statistics, 12:1, 156-175, http://dx.doi.org/10.1198/1061860031365
-#' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means)
+#' The model is equivalent to coxme(surv ~ (X1|1) + rowSums(X1) + (X2|1) + rowSums(X2) + ...); the coxme routine numerically optimises the integrated partial likelihood, which may
+#' be more accurate, but is computationally expensive.
+#' 
+#' @references Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz (2003) Penalized Survival Models and Frailty, Journal of Computational and Graphical Statistics, 12:1, 156-175, http://dx.doi.org/10.1198/1061860031365
+#' 
+#' A. Perperoglou (2014). Cox models with dynamic ridge penalties on time-varying effects of the covariates. Stat Med, 33:170-80. http://dx.doi.org/10.1002/sim.5921
+#' 
+#' R. Schall (1991). Estimation in generalized linear models with random effects. Biometrika, 78:719-727. http://dx.doi.org/10.1093/biomet/78.4.719
+
+#' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means), $Hinv (the inverse Hessian of the penalised likelihood), $V = Hinv I Hinv, the covariance of all coefficients and means, 
+#' $C the map between centred (beta', mu) to beta. 
 #' 
 #' @author mg14
 #' @export
 CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("df","MLE","REML","BLUP"), verbose=FALSE){
-	if(class(X)=="data.frame")
+	if(class(X)=="data.frame"){
 		X = as.matrix(X)
+		X.df <- TRUE
+	}
+	if(is.null(colnames(X)))
+		colnames(X) <- make.names(1:ncol(X))
 	sigma.hat = match.arg(sigma.hat)
 	o <- order(groups)
 	X <- X[,o]
@@ -143,16 +154,23 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	fit$mu = mu
 	fit$X = X[,order(o)]
 	fit$surv = surv
-	B <- rbind(diag(1, ncol(X)),t(as.matrix(MakeInteger(groups)))) ## map from centred to uncentred coefficients 
+	C <- rbind(diag(1, ncol(X)),t(as.matrix(MakeInteger(groups)[which.mu]))) ## map from centred to uncentred coefficients 
 	fit$groups = groups[order(o)]
 	var = fit$var
 	var2 = fit$var2
-	fit$var = (t(B) %*% var %*% B)[order(o),order(o)]
-	fit$var2 = (t(B) %*% var2 %*% B)[order(o),order(o)]
-	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))]
-	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))]
+	colnames(var) <- rownames(var) <- colnames(var2) <- rownames(var2) <- rownames(C) <- c(colnames(X), which.mu)
+	colnames(C) <- colnames(X)
+	fit$C <- C[c(order(o), (ncol(X)+1):ncol(var)),order(o)]
+	fit$Hinv <- var[c(order(o), (ncol(X)+1):ncol(var)),c(order(o), (ncol(X)+1):ncol(var))] ## Hinv 
+	fit$V <- var2[c(order(o), (ncol(X)+1):ncol(var)),c(order(o), (ncol(X)+1):ncol(var))] ## Hinv I Hinv
+	fit$z <- (fit$coefficients / sqrt(diag(var)))[c(order(o), (ncol(X)+1):ncol(var))] ## z-scores of centred coefficients
+	fit$z2 <- (fit$coefficients / sqrt(diag(var2)))[c(order(o), (ncol(X)+1):ncol(var))] ## z-scores of centred coefficients (var2)
+	fit$var = (t(C) %*% var %*% C)[order(o),order(o)] ## covariance of uncentred coef
+	fit$var2 = (t(C) %*% var2 %*% C)[order(o),order(o)] ## covariance of uncentred coef (var2)
+	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))] ## covariance of mean
+	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))] ## covariance of mean (var2)
 	fit$means = fit$means[1:ncol(X)][order(o)]
-	fit$coefficients <- (fit$coefficients %*% B)[order(o)]
+	fit$coefficients <- (fit$coefficients %*% C)[order(o)]
 	names(fit$coefficients) = colnames(X)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))

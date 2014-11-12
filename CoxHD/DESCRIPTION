@@ -7,13 +7,15 @@ Author: Moritz Gerstung
 Maintainer: <mg14@sanger.ac.uk>
 Description: This package includes two extensions of the Cox proportional
     hazards model and tools for non-parametric simulation of survival data.
-    The main models are a Random effects model and complementary pairs stability
+    The main models are a random effects model and complementary pairs stability
     selection.
 Depends:
     glmnet,
     survival,
     parallel,
     MASS
+Suggests:
+    coxme
 License: GPL-3
 Collate:
     'CoxCPSS.R'

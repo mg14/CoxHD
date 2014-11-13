@@ -36,9 +36,10 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 
 #' Cox proportional hazards model with random effects
 #' 
-#' This functinon estimates a Cox proportional in which the parameters follow normal distributions as discussed by Therneau et al. (2003). Multiple groups can be defined with different prior mean and variance. 
+#' This function estimates a Cox proportional in which the parameters follow normal distributions as discussed by Therneau et al. (2003). 
+#' Multiple groups can be defined with different prior mean and variance. 
 #' The variances of the joint distributions are efficiently estimated by an EM-type algorithm.
-#' @param X The data matrix (n x p)
+#' @param Z The data matrix of random effects (n x p)
 #' @param surv The survival object (n x 2)
 #' @param groups Optional groups as a factor (p) with l levels. Default = rep(1, n)
 #' @param which.mu Indicator which of the groups should have an offset. Default = unique(groups)
@@ -49,13 +50,13 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' @param penalize.mu Wether to define an N(0,tau) hyperprior on the group means.
 #' @param sigma.hat Which estimator to use for the variances. Default df, other possibilities include MLE, REML and BLUP, see details.
 #' @param verbose Gives more output.
-#' @details The values of the means mu_g are estimated using the rowSums of X (within in group) as auxillary variables. 
+#' @details The values of the means mu_g are estimated using the rowSums of Z (within in group) as auxillary variables. 
 #' 
 #' Different estimators exist for the variances sigma2_g: The default is "df", as used by Perperoglou (2014) and introduced by Schall (1991). In the M-step of the algorithm, this uses sigma^2_g = beta_g beta_g^T/df_g, where the degrees 
 #' of freedom df_g = tr H_{gg} are the trace of the Hessian matrix over the elements of group g. Alternatives are MLE, REML, and BLUP, as defined by Therneau et al. (2003). 
 #' Simulations indicate that the 'df' method is most accurate.
 #' 
-#' The model is equivalent to coxme(surv ~ (X1|1) + rowSums(X1) + (X2|1) + rowSums(X2) + ...); the coxme routine numerically optimises the integrated partial likelihood, which may
+#' The model is equivalent to coxme(surv ~ (Z1|1) + rowSums(Z1) + (Z2|1) + rowSums(Z2) + ...); the coxme routine numerically optimises the integrated partial likelihood, which may
 #' be more accurate, but is computationally expensive.
 #' 
 #' @references Terry M Therneau, Patricia M Grambsch & V. Shane Pankratz (2003) Penalized Survival Models and Frailty, Journal of Computational and Graphical Statistics, 12:1, 156-175, http://dx.doi.org/10.1198/1061860031365
@@ -64,46 +65,47 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' 
 #' R. Schall (1991). Estimation in generalized linear models with random effects. Biometrika, 78:719-727. http://dx.doi.org/10.1093/biomet/78.4.719
 
-#' @return A coxph object with a few extra fields: $groups, $X, $surv, $sigma2 (the variances), $mu (the means), $Hinv (the inverse Hessian of the penalised likelihood), $V = Hinv I Hinv, the covariance of all coefficients and means, 
+#' @return A coxph object with a few extra fields: $groups, $Z, $surv, $sigma2 (the variances), $mu (the means), $Hinv (the inverse Hessian of the penalised likelihood), $V = Hinv I Hinv, the covariance of all coefficients and means, 
 #' $C the map between centred (beta', mu) to beta. 
 #' 
 #' @author mg14
 #' @export
-CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("df","MLE","REML","BLUP"), verbose=FALSE){
-	if(class(X)=="data.frame"){
-		X = as.matrix(X)
-		X.df <- TRUE
-	}
-	if(is.null(colnames(X)))
-		colnames(X) <- make.names(1:ncol(X))
+CoxRFX <- function(Z, surv, groups = rep(1, ncol(Z)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("df","MLE","REML","BLUP"), verbose=FALSE){
+	if(class(Z)=="data.frame"){
+		Z = as.matrix(Z)
+		Z.df <- TRUE
+	}else
+		Z.df <- FALSE
+	if(is.null(colnames(Z)))
+		colnames(Z) <- make.names(1:ncol(Z))
 	sigma.hat = match.arg(sigma.hat)
 	o <- order(groups)
-	X <- X[,o]
+	Z <- Z[,o]
 	groups <- factor(groups[o])
 	uniqueGroups <- levels(groups)
-	XX <- lapply(uniqueGroups, function(i) X[,groups==i, drop=FALSE])
-	names(XX) <- uniqueGroups
-	sumX <- sapply(which.mu, function(i) rowSums(XX[[i]]))
+	ZZ <- lapply(uniqueGroups, function(i) Z[,groups==i, drop=FALSE])
+	names(ZZ) <- uniqueGroups
+	sumZ <- sapply(which.mu, function(i) rowSums(ZZ[[i]]))
 	nGroups = length(uniqueGroups)
 	sigma2 <- sigma0ld <- rep(ifelse(sigma0>0, sigma0,1), nGroups)
 	iter = 1
 	mu <- mu0ld <- rep(0, nGroups)
 	names(mu) <- uniqueGroups
-	beta = rep(1,ncol(X)+length(which.mu))
-	beta0ld = rep(0,ncol(X)+length(which.mu))
+	beta = rep(1,ncol(Z)+length(which.mu))
+	beta0ld = rep(0,ncol(Z)+length(which.mu))
 	sigma2.mu = 42
 	if(!is.null(which.mu)) 
 		if(!penalize.mu)
-			sumTerm <- "sumX" 
+			sumTerm <- "sumZ" 
 		else
-			sumTerm <- "ridge(sumX, theta=1/sigma2.mu, scale=FALSE)"
+			sumTerm <- "ridge(sumZ, theta=1/sigma2.mu, scale=FALSE)"
 	else sumTerm <- character(0)
 	while((max(abs(beta-beta0ld)) > tol | max(abs(mu - mu0ld)) > tol | max(abs(sigma2 - sigma0ld)) > tol) & iter < max.iter){
 		beta0ld = beta
 		sigma0ld <- sigma2
 		mu0ld <- mu
-		formula <- formula(paste("surv ~", paste(c(sapply(1:nGroups, function(i) paste("ridge(XX[[",i,"]], theta=1/sigma2[",i,"], scale=FALSE)", sep="")), 
-								#ifelse(!is.null(which.mu),"ridge(sumX, theta=1/sigma.mu, scale=FALSE)","")), 
+		formula <- formula(paste("surv ~", paste(c(sapply(1:nGroups, function(i) paste("ridge(ZZ[[",i,"]], theta=1/sigma2[",i,"], scale=FALSE)", sep="")), 
+								#ifelse(!is.null(which.mu),"ridge(sumZ, theta=1/sigma.mu, scale=FALSE)","")), 
 								sumTerm), 
 						collapse=" + ")))
 		fit <- coxph(formula)
@@ -112,7 +114,7 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 			break
 		}
 		if(!is.null(which.mu))
-			mu[which.mu] <- coef(fit)[-(1:ncol(X))]
+			mu[which.mu] <- coef(fit)[-(1:ncol(Z))]
 		if(verbose) cat("mu", mu, "\n", sep="\t")
 		names(fit$df) <- c(uniqueGroups, rep("Offset", length(which.mu)>0))
 		if(verbose) cat("df", fit$df,"\n", sep="\t")
@@ -137,9 +139,9 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 			else if(sigma.hat=="df")
 				sigma2.mu = (sigma0 * nu + sum((mu-0)^2)) / (nu + fit$df["Offset"])
 			else if(sigma.hat == "MLE")
-				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(solve(solve(fit$var)[-(1:ncol(X)),-(1:ncol(X))]))))/(nu + length(mu))
+				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(solve(solve(fit$var)[-(1:ncol(Z)),-(1:ncol(Z))]))))/(nu + length(mu))
 			else if(sigma.hat == "REML")
-				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(X))]))/(nu + length(mu))
+				sigma2.mu = (nu * sigma0 + sum((mu-0)^2 ) + sum(diag(fit$var)[-(1:ncol(Z))]))/(nu + length(mu))
 		}
 		
 		beta = fit$coefficients
@@ -152,32 +154,37 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 	names(fit$sigma2) <- uniqueGroups
 	fit$sigma2.mu = sigma2.mu
 	fit$mu = mu
-	fit$X = X[,order(o)]
+	fit$Z = Z[,order(o)]
 	fit$surv = surv
-	C <- rbind(diag(1, ncol(X)),t(as.matrix(MakeInteger(groups)[which.mu]))) ## map from centred to uncentred coefficients 
+	C <- rbind(diag(1, ncol(Z)),t(as.matrix(MakeInteger(groups)[which.mu]))) ## map from centred to uncentred coefficients 
 	fit$groups = groups[order(o)]
 	var = fit$var
 	var2 = fit$var2
-	colnames(var) <- rownames(var) <- colnames(var2) <- rownames(var2) <- rownames(C) <- c(colnames(X), which.mu)
-	colnames(C) <- colnames(X)
-	fit$C <- C[c(order(o), (ncol(X)+1):ncol(var)),order(o)]
-	fit$Hinv <- var[c(order(o), (ncol(X)+1):ncol(var)),c(order(o), (ncol(X)+1):ncol(var))] ## Hinv 
-	fit$V <- var2[c(order(o), (ncol(X)+1):ncol(var)),c(order(o), (ncol(X)+1):ncol(var))] ## Hinv I Hinv
-	fit$z <- (fit$coefficients / sqrt(diag(var)))[c(order(o), (ncol(X)+1):ncol(var))] ## z-scores of centred coefficients
-	fit$z2 <- (fit$coefficients / sqrt(diag(var2)))[c(order(o), (ncol(X)+1):ncol(var))] ## z-scores of centred coefficients (var2)
+	colnames(var) <- rownames(var) <- colnames(var2) <- rownames(var2) <- rownames(C) <- c(colnames(Z), which.mu)
+	colnames(C) <- colnames(Z)
+	p <- ncol(Z)
+	fit$C <- C[c(order(o), (p+1):ncol(var)),order(o)]
+	fit$Hinv <- var[c(order(o), (p+1):ncol(var)),c(order(o), (p+1):ncol(var))] ## Hinv 
+	fit$V <- var2[c(order(o), (p+1):ncol(var)),c(order(o), (p+1):ncol(var))] ## Hinv I Hinv
+	fit$z <- (fit$coefficients / sqrt(diag(var)))[c(order(o), (p+1):ncol(var))] ## z-scores of centred coefficients
+	fit$z2 <- (fit$coefficients / sqrt(diag(var2)))[c(order(o), (p+1):ncol(var))] ## z-scores of centred coefficients (var2)
 	fit$var = (t(C) %*% var %*% C)[order(o),order(o)] ## covariance of uncentred coef
 	fit$var2 = (t(C) %*% var2 %*% C)[order(o),order(o)] ## covariance of uncentred coef (var2)
-	fit$mu.var = var[-(1:ncol(X)),-(1:ncol(X))] ## covariance of mean
-	fit$mu.var2 = var2[-(1:ncol(X)),-(1:ncol(X))] ## covariance of mean (var2)
-	fit$means = fit$means[1:ncol(X)][order(o)]
+	fit$mu.var = var[-(1:p),-(1:p)] ## covariance of mean
+	fit$mu.var2 = var2[-(1:p),-(1:p)] ## covariance of mean (var2)
+	fit$means = fit$means[1:p][order(o)]
 	fit$coefficients <- (fit$coefficients %*% C)[order(o)]
-	names(fit$coefficients) = colnames(X)[order(o)]
+	names(fit$coefficients) = colnames(Z)[order(o)]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
 	## Fake call for predict.coxph and survfit.coxph
 	call <- match.call()
-	call["data"] <- call["X"]
-	formula <- as.formula(paste(as.character(call["surv"]),"~",paste(colnames(X)[order(o)], collapse="+")))
+	if(Z.df){
+		call["data"] <- call["Z"]
+		formula <- as.formula(paste(as.character(call["surv"]),"~",paste(colnames(Z)[order(o)], collapse="+")))
+	}else{
+		formula <- as.formula(paste(as.character(call["surv"]),"~",as.character(call["Z"])))
+	}
 	fit$formula <- formula
 	call["formula"] <- call("foo",formula=formula)["formula"]
 	fit$terms <- terms(formula)
@@ -188,39 +195,39 @@ CoxRFX <- function(X, surv, groups = rep(1, ncol(X)), which.mu = unique(groups),
 
 #' Partial risk components
 #' @param fit The CoxRFX fit
-#' @param newX New data, defaults to fit$X
+#' @param newZ New data, defaults to fit$Z
 #' @param groups The groups, defaults to fit$groups
 #' @return A matrix with the risk per group
 #' 
 #' @author mg14
 #' @export
-PartialRisk <- function(fit, newX=fit$X, groups=fit$groups) {
+PartialRisk <- function(fit, newZ=fit$Z, groups=fit$groups) {
 	sapply(levels(groups), function(x) {
 				ix <- groups == x
-				as.matrix(newX[,ix, drop=FALSE]) %*% coef(fit)[ix] 
+				as.matrix(newZ[,ix, drop=FALSE]) %*% coef(fit)[ix] 
 			})
 }
 
 #' Variance (confidence intervals) of partial risk components
 #' @param fit The CoxRFX fit
-#' @param newX New data, defaults to fit$X
+#' @param newZ New data, defaults to fit$Z
 #' @param groups The groups, defaults to fit$groups
 #' @return A matrix with the confidence interval (prediction variance) for each risk component
 #' 
 #' @author mg14
 #' @export
-PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups, var = c("var2","var")) {
+PartialRiskVar <- function(fit, newZ=fit$Z, groups=fit$groups, var = c("var2","var")) {
 	var <- match.arg(var)
-	newX <- newX - rep(colMeans(newX), each=nrow(newX))
+	newZ <- newZ - rep(colMeans(newZ), each=nrow(newZ))
 	sapply(levels(groups), function(x) {
 				ix <- groups == x
-				rowSums((as.matrix(newX[,ix, drop=FALSE]) %*% fit[[var]][ix,ix]) * as.matrix(newX[,ix, drop=FALSE]))
+				rowSums((as.matrix(newZ[,ix, drop=FALSE]) %*% fit[[var]][ix,ix]) * as.matrix(newZ[,ix, drop=FALSE]))
 			})
 }
 
 #' Variance components
 #' @param fit The CoxRFX fit
-#' @param newX New data, defaults to fit$X
+#' @param newZ New data, defaults to fit$Z
 #' @param groups The groups, defaults to fit$groups
 #' @param type Take either the diagonal of the covariance matrix (default), or the rowSums. The latter guaranties that the
 #' components sum up to the actual variance, but could be negative in the case of collinearity. The two are equivalent 
@@ -229,13 +236,13 @@ PartialRiskVar <- function(fit, newX=fit$X, groups=fit$groups, var = c("var2","v
 #' 
 #' @author mg14
 #' @export
-VarianceComponents <- function(fit, newX = fit$X, groups = fit$groups, type = c("diag","rowSums"), var=c("var2","var")){
+VarianceComponents <- function(fit, newZ = fit$Z, groups = fit$groups, type = c("diag","rowSums"), var=c("var2","var")){
 	var <- match.arg(var)
-	risk <- PartialRisk(fit = fit, newX = newX, groups = groups)
+	risk <- PartialRisk(fit = fit, newZ = newZ, groups = groups)
 	type <- match.arg(type)
 	#residual <- predict(fit, se.fit=TRUE)$se.fit^2
-	newX <- as.matrix(newX - rep(colMeans(newX), each=nrow(newX)))
-	error <- rowSums((newX %*% fit[[var]]) * newX)
+	newZ <- as.matrix(newZ - rep(colMeans(newZ), each=nrow(newZ)))
+	error <- rowSums((newZ %*% fit[[var]]) * newZ)
 	
 	c <- cov(risk, use="complete")
 	if(type=="diag")
@@ -281,23 +288,23 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 	}
 }
 
-VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), invert = TRUE, value=TRUE), type=c("diag","colSums"), method="simple"){
+VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$Z), invert = TRUE, value=TRUE), type=c("diag","colSums"), method="simple"){
 	if(method=="simple"){
 		type="diag"
 		risk <- PartialRisk(fit = fit)
-		X <- fit$X
-		risk0 <- X * rep(fit$coef, each=nrow(X))
-		X <- X - rep(colMeans(X), each=nrow(X))
+		Z <- fit$Z
+		risk0 <- Z * rep(fit$coef, each=nrow(Z))
+		Z <- Z - rep(colMeans(Z), each=nrow(Z))
 		#residual <- predict(fit, se.fit=TRUE)$se.fit^2
 		V <- fit$var
-		colnames(V) <- rownames(V) <- colnames(fit$X)
+		colnames(V) <- rownames(V) <- colnames(fit$Z)
 		sapply(which.coef, function(i){
-					w <- grep(i, colnames(X), value = TRUE)
+					w <- grep(i, colnames(Z), value = TRUE)
 					r <- risk
 					for(ww in w)
 						r[,fit$groups[ww]] <- r[,fit$groups[ww]] - risk0[,ww]
-					idx <- !colnames(X) %in% w
-					error <- rowSums((as.matrix(X[,idx]) %*% V[idx,idx]) * as.matrix(X[,idx]))
+					idx <- !colnames(Z) %in% w
+					error <- rowSums((as.matrix(Z[,idx]) %*% V[idx,idx]) * as.matrix(Z[,idx]))
 					c <- cov(r, use="complete")
 					if(type=="diag")
 						x <- diag(c)
@@ -307,8 +314,8 @@ VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), in
 				})
 	}else{
 		sapply(which.coef, function(i){
-					w <- grep(i, colnames(fit$X), value = TRUE, invert=TRUE)
-					fit <- CoxRFX(fit$X[,w], fit$surv, fit$groups[w], sigma0=0.1, nu=0)
+					w <- grep(i, colnames(fit$Z), value = TRUE, invert=TRUE)
+					fit <- CoxRFX(fit$Z[,w], fit$surv, fit$groups[w], sigma0=0.1, nu=0)
 					VarianceComponents(fit)
 	})}
 }
@@ -316,18 +323,18 @@ VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$X), in
 
 #' Compute concordance for risk components
 #' @param fit The CoxRFX fit
-#' @param newX New data, defaults to fit$X
+#' @param newZ New data, defaults to fit$Z
 #' @param groups The groups, defaults to fit$groups
 #' @param newSurv The survival object, defaults to fit$surv
 #' @return A vector with the concordance of each component
 #' 
 #' @author mg14
 #' @export
-PartialC <- function(fit, newX = fit$X, newSurv=fit$surv, groups=fit$groups){
+PartialC <- function(fit, newZ = fit$Z, newSurv=fit$surv, groups=fit$groups){
 	#require(Hmisc)
 	c <- sapply(levels(groups), function(x) {
 				ix <- groups == x
-				r <- as.matrix(newX[,ix, drop=FALSE]) %*% coef(fit)[ix]
+				r <- as.matrix(newZ[,ix, drop=FALSE]) %*% coef(fit)[ix]
 				#rcorr.cens(-r, newSurv)[1]
 				c <- survConcordance(newSurv~r)
 				c(c$concordance, c$std.err)
@@ -338,39 +345,39 @@ PartialC <- function(fit, newX = fit$X, newSurv=fit$surv, groups=fit$groups){
 	
 #' Predict risk with missing data
 #' @param fit A CoxRFX fit
-#' @param newX 
+#' @param newZ 
 #' @param var Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.
 #' @return A data.frame with columns Expected and Variance 
 #' 
 #' @author mg14
 #' @export
-PredictRiskMissing <- function(fit, newX=fit$X, var = c("var2","var")){
+PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var")){
 	var <- match.arg(var)
-	Sigma <- cov(fit$X)
-	mu <- colMeans(fit$X)
+	Sigma <- cov(fit$Z)
+	mu <- colMeans(fit$Z)
 	beta <- fit$coefficients
 	
-	.predict <- function(newX, beta, Sigma, mu){
-		missing <- is.na(newX)
-		expectedX <- newX
+	.predict <- function(newZ, beta, Sigma, mu){
+		missing <- is.na(newZ)
+		expectedZ <- newZ
 		if(any(missing)){
 			if(all(missing)){
-				expectedX[missing] <- mu[missing]
+				expectedZ[missing] <- mu[missing]
 				varianceRisk <- beta[missing] %*% (Sigma[missing,missing]) %*% beta[missing]
 			}else{
 				s <- Sigma[missing, !missing, drop=FALSE] %*% MASS::ginv(Sigma[!missing, !missing, drop=FALSE])
-				expectedX[missing] <- mu[missing] + s %*% (newX[!missing] - mu[!missing])
+				expectedZ[missing] <- mu[missing] + s %*% (newZ[!missing] - mu[!missing])
 				varianceRisk <- beta[missing] %*% (Sigma[missing,missing] - s %*%  Sigma[!missing, missing] ) %*% beta[missing]
 			}
 		}else{
 			varianceRisk <- 0
 		}
-		expectedRisk <- expectedX %*% beta
-		e <- expectedX - mu
+		expectedRisk <- expectedZ %*% beta
+		e <- expectedZ - mu
 		varianceRisk <- e %*% fit[[var]][1:length(fit$coefficients),1:length(fit$coefficients)] %*% e + varianceRisk
 		return(c(expectedRisk, varianceRisk))
 	}
-	predictions <- t(apply(newX, 1, .predict, beta, Sigma, mu))
+	predictions <- t(apply(newZ, 1, .predict, beta, Sigma, mu))
 	colnames(predictions) <- c("Expected","Variance")
 	return(predictions)
 }
@@ -388,7 +395,7 @@ PredictRiskMissing <- function(fit, newX=fit$X, var = c("var2","var")){
 #' 
 #' @author mg14
 #' @export
-ImputeXMissing <- function(X, newX=X, use="pairwise.complete.obs"){
+ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs"){
 	Sigma <- cov(X, use=use)
 	mu <- colMeans(X, na.rm=TRUE)
 	l <- ncol(X)

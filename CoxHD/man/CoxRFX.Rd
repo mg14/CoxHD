@@ -2,14 +2,14 @@
 \alias{CoxRFX}
 \title{Cox proportional hazards model with random effects}
 \usage{
-  CoxRFX(X, surv, groups = rep(1, ncol(X)),
+  CoxRFX(Z, surv, groups = rep(1, ncol(Z)),
     which.mu = unique(groups), tol = 0.001, max.iter = 50,
     sigma0 = 0.1, nu = 0, penalize.mu = FALSE,
     sigma.hat = c("df", "MLE", "REML", "BLUP"),
     verbose = FALSE)
 }
 \arguments{
-  \item{X}{The data matrix (n x p)}
+  \item{Z}{The data matrix of random effects (n x p)}
 
   \item{surv}{The survival object (n x 2)}
 
@@ -39,14 +39,14 @@
   \item{verbose}{Gives more output.}
 }
 \value{
-  A coxph object with a few extra fields: $groups, $X,
+  A coxph object with a few extra fields: $groups, $Z,
   $surv, $sigma2 (the variances), $mu (the means), $Hinv
   (the inverse Hessian of the penalised likelihood), $V =
   Hinv I Hinv, the covariance of all coefficients and
   means, $C the map between centred (beta', mu) to beta.
 }
 \description{
-  This functinon estimates a Cox proportional in which the
+  This function estimates a Cox proportional in which the
   parameters follow normal distributions as discussed by
   Therneau et al. (2003). Multiple groups can be defined
   with different prior mean and variance. The variances of
@@ -55,7 +55,7 @@
 }
 \details{
   The values of the means mu_g are estimated using the
-  rowSums of X (within in group) as auxillary variables.
+  rowSums of Z (within in group) as auxillary variables.
 
   Different estimators exist for the variances sigma2_g:
   The default is "df", as used by Perperoglou (2014) and
@@ -67,8 +67,8 @@
   Therneau et al. (2003). Simulations indicate that the
   'df' method is most accurate.
 
-  The model is equivalent to coxme(surv ~ (X1|1) +
-  rowSums(X1) + (X2|1) + rowSums(X2) + ...); the coxme
+  The model is equivalent to coxme(surv ~ (Z1|1) +
+  rowSums(Z1) + (Z2|1) + rowSums(Z2) + ...); the coxme
   routine numerically optimises the integrated partial
   likelihood, which may be more accurate, but is
   computationally expensive.

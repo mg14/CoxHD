@@ -6,7 +6,7 @@ roxygen: CoxHD
 check: CoxHD
 	R CMD check CoxHD
 
-build: CoxHD
+build: CoxHD clean
 	cp -rf CoxHD CoxHD.build
 	git describe --abbrev=0 | xargs -I%  git rev-list %..HEAD --count | xargs -I% sed '/^Version/ s/$$/\.%/g' CoxHD/DESCRIPTION > CoxHD.build/DESCRIPTION
 	git log --pretty=format:'%ai' -n 1 HEAD | xargs -I% sed -i'~' 's/Date:.*/Date: %/g' CoxHD.build/DESCRIPTION

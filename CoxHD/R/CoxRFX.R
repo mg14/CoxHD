@@ -163,25 +163,27 @@ CoxRFX <- function(Z, surv, groups = rep(1, ncol(Z)), which.mu = unique(groups),
 	colnames(var) <- rownames(var) <- colnames(var2) <- rownames(var2) <- rownames(C) <- c(colnames(Z), which.mu)
 	colnames(C) <- colnames(Z)
 	p <- ncol(Z)
-	fit$C <- C[c(order(o), (p+1):ncol(var)),order(o)]
-	fit$Hinv <- var[c(order(o), (p+1):ncol(var)),c(order(o), (p+1):ncol(var))] ## Hinv 
-	fit$V <- var2[c(order(o), (p+1):ncol(var)),c(order(o), (p+1):ncol(var))] ## Hinv I Hinv
-	fit$z <- (fit$coefficients / sqrt(diag(var)))[c(order(o), (p+1):ncol(var))] ## z-scores of centred coefficients
-	fit$z2 <- (fit$coefficients / sqrt(diag(var2)))[c(order(o), (p+1):ncol(var))] ## z-scores of centred coefficients (var2)
-	fit$var = (t(C) %*% var %*% C)[order(o),order(o)] ## covariance of uncentred coef
-	fit$var2 = (t(C) %*% var2 %*% C)[order(o),order(o)] ## covariance of uncentred coef (var2)
+	i <- c(order(o), (1:ncol(var))[-p:-1])
+	j <- order(o)
+	fit$C <- C[i,j]
+	fit$Hinv <- var[i,i] ## Hinv 
+	fit$V <- var2[i,i] ## Hinv I Hinv
+	fit$z <- (fit$coefficients / sqrt(diag(var)))[i] ## z-scores of centred coefficients
+	fit$z2 <- (fit$coefficients / sqrt(diag(var2)))[i] ## z-scores of centred coefficients (var2)
+	fit$var = (t(C) %*% var %*% C)[j,j] ## covariance of uncentred coef
+	fit$var2 = (t(C) %*% var2 %*% C)[j,j] ## covariance of uncentred coef (var2)
 	fit$mu.var = var[-(1:p),-(1:p)] ## covariance of mean
 	fit$mu.var2 = var2[-(1:p),-(1:p)] ## covariance of mean (var2)
-	fit$means = fit$means[1:p][order(o)]
-	fit$coefficients <- (fit$coefficients %*% C)[order(o)]
-	names(fit$coefficients) = colnames(Z)[order(o)]
+	fit$means = fit$means[1:p][j]
+	fit$coefficients <- (fit$coefficients %*% C)[j]
+	names(fit$coefficients) = colnames(Z)[j]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
 	## Fake call for predict.coxph and survfit.coxph
 	call <- match.call()
 	if(Z.df){
 		call["data"] <- call["Z"]
-		formula <- as.formula(paste(as.character(call["surv"]),"~",paste(colnames(Z)[order(o)], collapse="+")))
+		formula <- as.formula(paste(as.character(call["surv"]),"~",paste(colnames(Z)[j], collapse="+")))
 	}else{
 		formula <- as.formula(paste(as.character(call["surv"]),"~",as.character(call["Z"])))
 	}

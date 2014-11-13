@@ -2,13 +2,13 @@
 \alias{PartialC}
 \title{Compute concordance for risk components}
 \usage{
-  PartialC(fit, newX = fit$X, newSurv = fit$surv,
+  PartialC(fit, newZ = fit$Z, newSurv = fit$surv,
     groups = fit$groups)
 }
 \arguments{
   \item{fit}{The CoxRFX fit}
 
-  \item{newX}{New data, defaults to fit$X}
+  \item{newZ}{New data, defaults to fit$Z}
 
   \item{groups}{The groups, defaults to fit$groups}
 

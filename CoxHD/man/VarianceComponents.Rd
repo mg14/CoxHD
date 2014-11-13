@@ -2,14 +2,14 @@
 \alias{VarianceComponents}
 \title{Variance components}
 \usage{
-  VarianceComponents(fit, newX = fit$X,
+  VarianceComponents(fit, newZ = fit$Z,
     groups = fit$groups, type = c("diag", "rowSums"),
     var = c("var2", "var"))
 }
 \arguments{
   \item{fit}{The CoxRFX fit}
 
-  \item{newX}{New data, defaults to fit$X}
+  \item{newZ}{New data, defaults to fit$Z}
 
   \item{groups}{The groups, defaults to fit$groups}
 

@@ -2,13 +2,13 @@
 \alias{PredictRiskMissing}
 \title{Predict risk with missing data}
 \usage{
-  PredictRiskMissing(fit, newX = fit$X,
+  PredictRiskMissing(fit, newZ = fit$Z,
     var = c("var2", "var"))
 }
 \arguments{
   \item{fit}{A CoxRFX fit}
 
-  \item{newX}{}
+  \item{newZ}{}
 
   \item{var}{Which variance estimate to use either var =
   $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the

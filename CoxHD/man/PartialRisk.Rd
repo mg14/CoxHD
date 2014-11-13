@@ -2,12 +2,12 @@
 \alias{PartialRisk}
 \title{Partial risk components}
 \usage{
-  PartialRisk(fit, newX = fit$X, groups = fit$groups)
+  PartialRisk(fit, newZ = fit$Z, groups = fit$groups)
 }
 \arguments{
   \item{fit}{The CoxRFX fit}
 
-  \item{newX}{New data, defaults to fit$X}
+  \item{newZ}{New data, defaults to fit$Z}
 
   \item{groups}{The groups, defaults to fit$groups}
 }

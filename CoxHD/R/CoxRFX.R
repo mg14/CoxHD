@@ -238,7 +238,7 @@ PartialRiskVar <- function(fit, newZ=fit$Z, groups=fit$groups, var = c("var2","v
 #' 
 #' @author mg14
 #' @export
-VarianceComponents <- function(fit, newZ = fit$Z, groups = fit$groups, type = c("diag","rowSums"), var=c("var2","var")){
+VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.action),], groups = fit$groups, type = c("diag","rowSums"), var=c("var2","var")){
 	var <- match.arg(var)
 	risk <- PartialRisk(fit = fit, newZ = newZ, groups = groups)
 	type <- match.arg(type)

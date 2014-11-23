@@ -1,10 +1,10 @@
-\name{TestInteractions}
-\alias{TestInteractions}
+\name{TestInteractionsCPH}
+\alias{TestInteractionsCPH}
 \title{Test for interactions
 A coxph() model is used to systematically test for interactions. Returned are both a Wald test and a likelihood ratio test,
 as well as the estimated coefficient and an indicator if the fitting caused a warning().}
 \usage{
-  TestInteractions(data, survival, pairs,
+  TestInteractionsCPH(data, survival, pairs,
     whichMain = colnames(data), mc.cores = 1, minObs = 5)
 }
 \arguments{

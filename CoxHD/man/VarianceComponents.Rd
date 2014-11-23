@@ -2,7 +2,8 @@
 \alias{VarianceComponents}
 \title{Variance components}
 \usage{
-  VarianceComponents(fit, newZ = fit$Z,
+  VarianceComponents(fit,
+    newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.action), ],
     groups = fit$groups, type = c("diag", "rowSums"),
     var = c("var2", "var"))
 }

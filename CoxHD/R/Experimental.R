@@ -131,8 +131,8 @@ GetPairs <- function(names, scope){
 WaldTest <- function(coxRFX, var=c("var2","var")){
 	var <- match.arg(var)
 	v <- diag(coxRFX[[var]]) 
-	z <- coef(coxRFX)/sqrt(diag(coxRFX$var)) 
-	d <- if(var=="var") colSums(coxRFX$C) else diag(coxRFX$var2)/diag(coxRFX$var) ## What happens if 0?
+	z <- coef(coxRFX)/sqrt(v) 
+	d <- 1
 	p <- pchisq(z^2, d, lower.tail=FALSE)
 	data.frame(coef=coef(coxRFX), sd=sqrt(v), z=z, df = d, p=p, sig=sig2star(p))
 }
@@ -160,4 +160,21 @@ show.CoxRFX <- function(x){
 
 print.CoxRFX <- function(x){
 	show.CoxRFX(x)
+}
+
+concordanceFromVariance <- function(x) {
+	.cfv <- function(x){
+		stopifnot(x >= 0)
+		if(x == 0)
+			return(.5)			
+		f <- function(x, sigma2) dnorm(x, sd=sqrt(2*sigma2)) / (1 +  exp(- x))
+		2*integrate(f, 0, 10*sqrt(x), sigma2=x)$value
+	}
+	sapply(x, .cfv)
+}
+
+SimCoef <- function(coxRFX=NULL, groups = coxRFX$groups, mu=coxRFX$mu, sigma2=coxRFX$sigma2){
+	c <- rnorm(length(groups), mu[groups], sqrt(sigma2[groups]))
+	names(c) <- names(groups)
+	c
 }

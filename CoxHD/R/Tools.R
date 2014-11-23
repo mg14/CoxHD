@@ -18,7 +18,7 @@
 #' 
 #' @author mg14
 #' @export
-TestInteractions <- function(data, survival, pairs, whichMain = colnames(data), mc.cores=1, minObs = 5){
+TestInteractionsCPH <- function(data, survival, pairs, whichMain = colnames(data), mc.cores=1, minObs = 5){
 	whichMain <- names(which(colSums(data!=0,na.rm=TRUE)[whichMain] >= minObs))
 	data <- data + 0 ## Make numeric
 	result <- mclapply(pairs, function(s){

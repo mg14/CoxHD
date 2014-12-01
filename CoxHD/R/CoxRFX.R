@@ -187,6 +187,7 @@ CoxRFX <- function(Z, surv, groups = rep(1, ncol(Z)), which.mu = unique(groups),
 	}else{
 		formula <- as.formula(paste(as.character(call["surv"]),"~",as.character(call["Z"])))
 	}
+	attr(formula,".Environment") <- parent.frame()
 	fit$formula <- formula
 	call["formula"] <- call("foo",formula=formula)["formula"]
 	fit$terms <- terms(formula)

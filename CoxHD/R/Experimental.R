@@ -128,43 +128,10 @@ GetPairs <- function(names, scope){
 }
 
 
-WaldTest <- function(coxRFX, var=c("var2","var")){
-	var <- match.arg(var)
-	v <- diag(coxRFX[[var]]) 
-	z <- coef(coxRFX)/sqrt(v) 
-	d <- 1
-	p <- pchisq(z^2, d, lower.tail=FALSE)
-	data.frame(coef=coef(coxRFX), sd=sqrt(v), z=z, df = d, p=p, sig=sig2star(p))
-}
-
 show.CoxRFX <- function(x){
-	which.mu <- names(x$mu)[x$mu!=0]
-	p <- z <- s <- x$mu
-	z[which.mu] <- x$mu[which.mu]/sqrt(diag(x$mu.var2))
-	s[which.mu] <- sqrt(diag(x$mu.var2))
-	p <- pchisq(z^2,1,lower.tail=FALSE)
-	p[!names(p) %in% which.mu] <- NA
-	cat("Means:\n")
-	show(format(data.frame(mean=x$mu, sd=s, z=z, p.val=p, sig=sig2star(p)), digits=2))
-	cat("\nVariances:\n")
-	v <- x$sigma2
-	c <- coef(x) - x$mu[x$groups] ## centred coefficients
-	chisq <- sapply(split(c^2/diag(x$Hinv)[1:length(c)], x$groups), sum)
-	df <- x$df[-(nlevels(x$groups)+1)]
-	p <- pchisq(chisq, df, lower.tail=FALSE)
-#	f <- as.numeric(table(x$groups)/x$df[-(nlevels(x$groups)+1)])
-#	u <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.025, length(x)))
-#	l <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.975, length(x)))
-	show(format(data.frame(sigma2=v, chisq=chisq, df = df, p.val=p, sig=sig2star(p)), digits=2))
-	cat("\nPartial log hazard:\n")
-	p <- PartialRisk(x)
-	v <- VarianceComponents(x)
-	e <- colMeans(PartialRiskVar(x))
-	show(format(data.frame(`Cov[g,g]`=c(diag(cov(p)), TOTAL=NaN), `Sum(Cov[,g])`=c(rowSums(cov(p)),TOTAL=sum(cov(p))), `MSE`=c(e, TOTAL=v[length(v)]), check.names = FALSE),  digits=2))
-}
-
-print.CoxRFX <- function(x){
-	show.CoxRFX(x)
+	summary(x)
+	cat("\nCoefficients:\n")
+	WaldTest(x)
 }
 
 ConcordanceFromVariance <- function(x) {

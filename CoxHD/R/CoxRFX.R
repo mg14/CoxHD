@@ -468,3 +468,73 @@ plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")),
 		i <- i+1
 	}
 }
+
+
+#' A Wald test for the coefficients of a CoxRFX model
+#' 
+#' This separately tests the null-hypothesis of being zero on each coefficient in a CoxRFX model using a Wald test. The test
+#' statistic is z^2 = coef^2/var[coef].
+#' @param coxRFX The CoxRFX model
+#' @param var Which type of variance estimate to use. The default choice is var2 = H-1 I H-1. A more conservative choice is var2 = H-1.
+#' @return A data.frame with columns coef, sd, z and p
+#' 
+#' @author mg14
+#' @export
+WaldTest <- function(coxRFX, var=c("var2","var")){
+	var <- match.arg(var)
+	v <- diag(coxRFX[[var]]) 
+	z <- coef(coxRFX)/sqrt(v) 
+	d <- 1
+	p <- pchisq(z^2, d, lower.tail=FALSE)
+	data.frame(coef=coef(coxRFX), sd=sqrt(v), z=z, df = d, p=p, sig=sig2star(p))
+}
+
+#' A summary method for CoxRFX models
+#' 
+#' This model prints the means and variances for each groups of covariates, as well as the variance components.
+#' For the means a Wald test with 1df is computed testing the null-hypothesis of being zero.
+#' The null-hypothesis of zero variance is tested using a combined Wald test that all coefficients in the group are
+#' identical to the mean. This test has tr(H-1 I) df.
+#' @param x A CoxRFX model
+#' @return NULL
+#' 
+#' @author mg14
+#' @export
+summary.CoxRFX <- function(x){
+	which.mu <- names(x$mu)[x$mu!=0]
+	p <- z <- s <- x$mu
+	z[which.mu] <- x$mu[which.mu]/sqrt(diag(x$mu.var2))
+	s[which.mu] <- sqrt(diag(x$mu.var2))
+	p <- pchisq(z^2,1,lower.tail=FALSE)
+	p[!names(p) %in% which.mu] <- NA
+	cat("Means:\n")
+	show(format(data.frame(mean=x$mu, sd=s, z=z, p.val=p, sig=sig2star(p)), digits=2))
+	cat("\nVariances:\n")
+	v <- x$sigma2
+	c <- coef(x) - x$mu[x$groups] ## centred coefficients
+	chisq <- sapply(split(c^2/diag(x$Hinv)[1:length(c)], x$groups), sum)
+	df <- x$df[-(nlevels(x$groups)+1)]
+	p <- pchisq(chisq, df, lower.tail=FALSE)
+#	f <- as.numeric(table(x$groups)/x$df[-(nlevels(x$groups)+1)])
+#	u <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.025, length(x)))
+#	l <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.975, length(x)))
+	show(format(data.frame(sigma2=v, chisq=chisq, df = df, p.val=p, sig=sig2star(p)), digits=2))
+	cat("\nPartial log hazard:\n")
+	p <- PartialRisk(x)
+	v <- VarianceComponents(x)
+	e <- colMeans(PartialRiskVar(x))
+	show(format(data.frame(`Cov[g,g]`=c(diag(cov(p)), TOTAL=NaN), `Sum(Cov[,g])`=c(rowSums(cov(p)),TOTAL=sum(cov(p))), `MSE`=c(e, TOTAL=v[length(v)]), check.names = FALSE),  digits=2))
+}
+
+#' Print method for CoxRFX
+#' 
+#' This function implicitly calls summary.CoxRFX().
+#' @param x CoxRFX
+#' @return NULL
+#' 
+#' @author mg14
+#' @export
+print.CoxRFX <- function(x){
+	summary.CoxRFX(x)
+}
+

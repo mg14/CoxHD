@@ -117,9 +117,11 @@ CoxCPSS <- function(X, surv, bootstrap.samples=50, nlambda=250, alpha.weak=0.5, 
 
 	res <- ErrorControlCPSS(res, control = control, level = level)
 	if(coxph){
-		c <- call("coxph", formula= formula(paste(as.character(call["surv"]) , "~", paste(names(which(res$Pi > pi.thr)),collapse="+"))))
+		formula <- formula(paste(as.character(call["surv"]) , "~", paste(names(which(res$Pi > pi.thr)),collapse="+")))
+		attr(formula, ".Environment") <- parent.frame()
+		c <- call("coxph", formula= formula)
 		c["data"] <- call["X"]
-		res$coxph <- eval(c)
+		res$coxph <- eval(c, envir=parent.frame())
 	}
 	return(res)
 }
@@ -251,9 +253,11 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 	fitInt$adj.Pval[w] <- fitInt$adj.Pval0[w]
 	
 	call <- match.call()
-	c <- call("coxph", formula= formula(paste(as.character(call["surv"]) , "~", paste(names(which(fitInt$Pi > fitInt$pi.thr)),collapse="+"))))
+	formula <- formula(paste(as.character(call["surv"]) , "~", paste(names(which(fitInt$Pi > fitInt$pi.thr)),collapse="+")))
+	attr(formula, ".Environment") <- parent.frame()
+	c <- call("coxph", formula= formula)
 	c["data"] <- call["X"]
-	fitInt$coxph <- eval(c)
+	fitInt$coxph <- eval(c, envir=parent.frame())
 	
 	return(fitInt)
 }
@@ -282,3 +286,12 @@ print.CoxCPSS <- function(x){
 predict.CoxCPSS <- function(x, ...){
 	predict(x$coxph, ...)
 }
+
+
+#' Extract terms
+#' @param x  A CoxCPSS fit
+#' @return terms
+#' 
+#' @author mg14
+#' @export
+terms.CoxCPSS <- function(x) terms(x$coxph)

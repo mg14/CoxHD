@@ -1,5 +1,5 @@
 CoxHD
------
+====
 An R package with high-dimensional extensions of the Cox proportional hazards model.
 
 It includes:
@@ -9,4 +9,9 @@ This model assumes a shared normal distribution of effect sizes. The data can be
 It can be useful for fitting $n\approx p$ dimensions.
  
 ###CoxCPSS: Complementary pairs stability selection
-Stability selection is used for variable selection. Error control is possible based on the log concave model by Shah and Samworth.
+Stability selection is used for variable selection. Error control is possible based on the log-concave model by Shah and Samworth.
+
+Installation
+-----------
+Installation is easy using devtools::github_install
+	> library(devtools); github_install("mg14/CoxHD/CoxHD")

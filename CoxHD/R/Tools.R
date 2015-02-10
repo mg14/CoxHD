@@ -100,7 +100,8 @@ MakeTimeDependent <- function(dataFrame, timeEvent, timeStop = dataFrame$time, t
 	d <- dataFrame[index,]
 	d$index <- index
 	d$time1 <- c(timeStart, timeEvent[w])
-	d$time2 <- c(pmin(timeStop, timeEvent, na.rm=TRUE), timeStop[w])
+	d$time2 <- c(timeStop, timeStop[w])
+	d$time2[w] <- timeEvent[w]
 	d$event <- c(rep(0,nrow(dataFrame)), rep(1, length(w)))
 	e <- c(status, status[w])
 	e[w] <- 0

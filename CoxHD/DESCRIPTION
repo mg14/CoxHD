@@ -1,8 +1,8 @@
 Package: CoxHD
 Type: Package
 Title: High-dimensional extensions of the Cox proportional hazards model
-Version: 0.0.41
-Date: Tue Jan 20 16:06:39 GMT 2015
+Version: 0.0.42
+Date: Tue Feb 10 17:00:47 GMT 2015
 Author: Moritz Gerstung
 Maintainer: <mg14@sanger.ac.uk>
 Description: This package includes two extensions of the Cox proportional
@@ -15,13 +15,8 @@ Depends:
     parallel,
     MASS,
     RColorBrewer
+Imports:
+	mg14
 Suggests:
     coxme
 License: GPL-3
-Collate:
-    'CoxCPSS.R'
-    'CoxRFX.R'
-    'Experimental.R'
-    'Simulate.R'
-    'Tools.R'
-    'r_concave_tail.R'

@@ -500,6 +500,7 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 #' 
 #' @author mg14
 #' @export
+#' @importFrom mg14 sig2star
 summary.CoxRFX <- function(x){
 	which.mu <- names(x$mu)[x$mu!=0]
 	p <- z <- s <- x$mu

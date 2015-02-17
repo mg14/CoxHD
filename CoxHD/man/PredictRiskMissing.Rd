@@ -3,14 +3,17 @@
 \alias{PredictRiskMissing}
 \title{Predict risk with missing data}
 \usage{
-PredictRiskMissing(fit, newZ = fit$Z, var = c("var2", "var"))
+PredictRiskMissing(fit, newZ = fit$Z, var = c("var2", "var"),
+  bound = TRUE)
 }
 \arguments{
 \item{fit}{A CoxRFX fit}
 
-\item{newZ}{}
+\item{newZ}{data.frame or matrix with new variables.}
 
-\item{var}{Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.}
+\item{var}{character. Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.}
+
+\item{bound}{logical. Determines whether the imputations should be bound to the range of the variable observed in the original data set.}
 }
 \value{
 A data.frame with columns Expected and Variance

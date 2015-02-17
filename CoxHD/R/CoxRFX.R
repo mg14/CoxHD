@@ -70,6 +70,7 @@ ecoxph <- function(X,surv, tol=1e-3, max.iter=50){
 #' 
 #' @author mg14
 #' @export
+#' @example inst/example/CoxRFX-example.R
 CoxRFX <- function(Z, surv, groups = rep(1, ncol(Z)), which.mu = unique(groups), tol=1e-3, max.iter=50, sigma0 = 0.1, nu = 0,  penalize.mu = FALSE, sigma.hat=c("df","MLE","REML","BLUP"), verbose=FALSE){
 	if(class(Z)=="data.frame"){
 		Z = as.matrix(Z)
@@ -348,20 +349,22 @@ PartialC <- function(fit, newZ = fit$Z, newSurv=fit$surv, groups=fit$groups){
 	
 #' Predict risk with missing data
 #' @param fit A CoxRFX fit
-#' @param newZ 
-#' @param var Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.
+#' @param newZ data.frame or matrix with new variables.
+#' @param var character. Which variance estimate to use either var = $H^{-1}$, or var2 = $H^{-1}I H^{-1}$. The former is the more conservative choice, the latter (default) seems more accurate, but may underestimate the variance.
+#' @param bound logical. Determines whether the imputations should be bound to the range of the variable observed in the original data set.
 #' @return A data.frame with columns Expected and Variance 
 #' 
 #' @author mg14
 #' @export
-PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var")){
+PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var"), bound=TRUE){
 	var <- match.arg(var)
 	Sigma <- cov(fit$Z)
 	mu <- colMeans(fit$Z)
+	rangeZ <- apply(fit$Z,2,range, na.rm=TRUE)
 	beta <- fit$coefficients
 	newZ <- newZ[,names(beta)]
 	
-	.predict <- function(newZ, beta, Sigma, mu){
+	.predict <- function(newZ, beta, Sigma, mu, rangeZ){
 		missing <- is.na(newZ)
 		expectedZ <- newZ
 		if(any(missing)){
@@ -377,11 +380,13 @@ PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var")){
 			varianceRisk <- 0
 		}
 		expectedRisk <- expectedZ %*% beta
+		if(bound)
+			expectedZ <- pmin(pmax(expectedZ, rangeZ[1,]),rangeZ[2,])
 		e <- expectedZ - mu
 		varianceRisk <- e %*% fit[[var]][1:length(fit$coefficients),1:length(fit$coefficients)] %*% e + varianceRisk
 		return(c(expectedRisk, varianceRisk))
 	}
-	predictions <- t(apply(newZ, 1, .predict, beta, Sigma, mu))
+	predictions <- t(apply(newZ, 1, .predict, beta, Sigma, mu, rangeZ))
 	colnames(predictions) <- c("Expected","Variance")
 	return(predictions)
 }
@@ -394,17 +399,20 @@ PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var")){
 #' or randomly missing covariates. 
 #' @param X orignial data set
 #' @param newX The data.frame of covariates
-#' @param use Which observations to use for computing the covariance. See cov() for details.
+#' @param use character Which observations to use for computing the covariance. See cov() for details.
+#' @param bound logical. Determines whether the imputations should be bound to the range of the variable observed in the original data set.
 #' @return A data.frame of dim(newX) with imputed variables
 #' 
 #' @author mg14
 #' @export
-ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs"){
+ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs", bound=TRUE){
 	Sigma <- cov(X, use=use)
 	mu <- colMeans(X, na.rm=TRUE)
+	rangeX <- apply(X,2,range, na.rm=TRUE)
+	
 	l <- ncol(X)
 	
-	.impute <- function(newX, Sigma, mu){
+	.impute <- function(newX, Sigma, mu, rangeX){
 		missing <- is.na(newX)
 		expectedX <- newX
 		varianceX <- rep(0,l)
@@ -419,9 +427,11 @@ ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs"){
 			}
 		}
 		#return(cbind(expectedX, varianceX))
+		if(bound)
+			expectedX <- pmin(pmax(expectedX, rangeX[1,]),rangeX[2,])
 		expectedX
 	}
-	imputations <- t(apply(newX, 1, .impute, Sigma, mu))
+	imputations <- t(apply(newX, 1, .impute, Sigma, mu, rangeX))
 	colnames(imputations) <- colnames(newX) #c("Expected","Variance")
 	return(imputations)
 }

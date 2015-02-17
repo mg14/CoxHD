@@ -3,14 +3,16 @@
 \alias{ImputeMissing}
 \title{Covariance-based imputation of missing variables}
 \usage{
-ImputeMissing(X, newX = X, use = "pairwise.complete.obs")
+ImputeMissing(X, newX = X, use = "pairwise.complete.obs", bound = TRUE)
 }
 \arguments{
 \item{X}{orignial data set}
 
 \item{newX}{The data.frame of covariates}
 
-\item{use}{Which observations to use for computing the covariance. See cov() for details.}
+\item{use}{character Which observations to use for computing the covariance. See cov() for details.}
+
+\item{bound}{logical. Determines whether the imputations should be bound to the range of the variable observed in the original data set.}
 }
 \value{
 A data.frame of dim(newX) with imputed variables

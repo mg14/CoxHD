@@ -487,7 +487,7 @@ plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")),
 #' statistic is z^2 = coef^2/var[coef].
 #' @param coxRFX The CoxRFX model
 #' @param var Which type of variance estimate to use. The default choice is var2 = H-1 I H-1. A more conservative choice is var2 = H-1.
-#' @return A data.frame with columns coef, sd, z and p
+#' @return A data.frame with columns coef, sd, z and p.value
 #' 
 #' @author mg14
 #' @export
@@ -497,7 +497,7 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 	z <- coef(coxRFX)/sqrt(v) 
 	d <- 1
 	p <- pchisq(z^2, d, lower.tail=FALSE)
-	data.frame(coef=coef(coxRFX), sd=sqrt(v), z=z, df = d, p=p, sig=sig2star(p))
+	data.frame(coef=coef(coxRFX), sd=sqrt(v), z=z, df = d, p.value=p, sig=sig2star(p))
 }
 
 #' A summary method for CoxRFX models

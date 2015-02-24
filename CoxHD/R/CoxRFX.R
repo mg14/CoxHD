@@ -515,8 +515,8 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 summary.CoxRFX <- function(x){
 	which.mu <- names(x$mu)[x$mu!=0]
 	p <- z <- s <- x$mu
-	z[which.mu] <- x$mu[which.mu]/sqrt(diag(x$mu.var2))
-	s[which.mu] <- sqrt(diag(x$mu.var2))
+	z[which.mu] <- x$mu[which.mu]/sqrt(diag(as.matrix(x$mu.var2)))
+	s[which.mu] <- sqrt(diag(as.matrix(x$mu.var2)))
 	p <- pchisq(z^2,1,lower.tail=FALSE)
 	p[!names(p) %in% which.mu] <- NA
 	cat("Means:\n")

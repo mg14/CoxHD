@@ -263,17 +263,24 @@ VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.a
 #' @param type The type of variance compnents: Either 'rowSums' (default) or 'diag'. Rowsums sum up to the actual variance of the linear predictor, but can be
 #' negative. Plotting just the 'diag'onal elements guarantees positive components
 #' @param var Which variance estimated to take for the average prediction error. Choices are var2 and var.
+#' @param order Logical or integer. Whether, or if integer how,  the variance components should be ordered/
   
 #' @return NULL
 #' 
 #' @author mg14
 #' @export
-PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2, var=c("var2","var")) {
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2, var=c("var2","var"), order=TRUE) {
 	var <- match.arg(var)
 	if(is.null(names(col)))
 		names(col) <- levels(groups)
 	v <- VarianceComponents(fit, groups=groups, type=type)
-	o <- order(v[levels(groups)], decreasing=TRUE)
+	if(is.logical(order))
+		if(order==TRUE)
+			o <- order(v[levels(groups)], decreasing=TRUE)
+		else 
+			o <- TRUE
+	else 
+		o <- order
 	v <- v[o]
 	vp <- v[v>0]
 	vn <- v[v<=0]
@@ -284,11 +291,11 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 	}else{
 		rp <- rn <- NULL
 	}
-	pie(vp, col=col[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, digits),rp,")",sep=""), radius = sum(v))
+	pie(vp, col=col[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, digits),rp,")",sep=""), radius = sum(v), init.angle=90)
 	
 	if(length(vn)>0){
 		par(new=T)
-		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sum(v))
+		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sum(v), init.angle=90)
 	}
 }
 

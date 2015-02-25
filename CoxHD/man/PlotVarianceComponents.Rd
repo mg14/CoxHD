@@ -5,7 +5,7 @@
 \usage{
 PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
   groups = fit$groups, type = "rowSums", conf.int = TRUE, digits = 2,
-  var = c("var2", "var"))
+  var = c("var2", "var"), order = TRUE)
 }
 \arguments{
 \item{fit}{The CoxRFX fit}
@@ -18,6 +18,8 @@ PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
 negative. Plotting just the 'diag'onal elements guarantees positive components}
 
 \item{var}{Which variance estimated to take for the average prediction error. Choices are var2 and var.}
+
+\item{order}{Logical or integer. Whether, or if integer how,  the variance components should be ordered/}
 }
 \description{
 Plot variance components

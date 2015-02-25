@@ -10,11 +10,21 @@ summary.CoxRFX(x)
 }
 \description{
 This model prints the means and variances for each groups of covariates, as well as the variance components.
-For the means a Wald test with 1df is computed testing the null-hypothesis of being zero.
+For the means a Wald test with 1 df is computed testing the null-hypothesis of being zero.
+}
+\details{
 The null-hypothesis of zero variance is tested using a combined Wald test that all coefficients in the group are
-identical to the mean. This test has tr(H-1 I) df.
+identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta$} as a test statistic in a chi-square
+test with \eqn{\tr[H^{-1} \mathcal{I}]} df, where H is the Hessian of the penalised model
+and \mathcal{I} is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only.
+As noted by Therneau (2003) this test may be somewhat optimistic. Here, we are using \eqn{z^2 = \sum_i\beta_i^2/H_{ii}},
+which appears to be a more conservative choice, but the consequences remain to be thoroughly evaluated.
 }
 \author{
 mg14
+}
+\references{
+R. J. Gray (1992). Flexible Methods for Analyzing Survival Data Using Splines, with Applications to Breast Cancer Prognosis. Journal of the American Statistical Association, 87:942-951. http://dx.doi.org/10.1080/01621459.1992.10476248
+T. M. Therneau, P. M. Grambsch, and V. S. Pankratz (2003). Penalized Survival Models and Frailty. Journal of Computational and Graphical Statistics, 12:156-175. http://dx.doi.org/10.1198/1061860031365
 }
 

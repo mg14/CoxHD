@@ -484,9 +484,9 @@ plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")),
 #' A Wald test for the coefficients of a CoxRFX model
 #' 
 #' This separately tests the null-hypothesis of being zero on each coefficient in a CoxRFX model using a Wald test. The test
-#' statistic is z^2 = coef^2/var[coef].
+#' statistic is \eqn{z^2 = \beta^2/ Var[\beta]}.
 #' @param coxRFX The CoxRFX model
-#' @param var Which type of variance estimate to use. The default choice is var2 = H-1 I H-1. A more conservative choice is var2 = H-1.
+#' @param var Which type of variance estimate to use. The default choice is var2 = H^{-1} \mathcal{I} H^{-1}. A more conservative choice is var = H^{-1}.
 #' @return A data.frame with columns coef, sd, z and p.value
 #' 
 #' @author mg14
@@ -503,9 +503,17 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 #' A summary method for CoxRFX models
 #' 
 #' This model prints the means and variances for each groups of covariates, as well as the variance components.
-#' For the means a Wald test with 1df is computed testing the null-hypothesis of being zero.
+#' For the means a Wald test with 1 df is computed testing the null-hypothesis of being zero.
+#' 
 #' The null-hypothesis of zero variance is tested using a combined Wald test that all coefficients in the group are
-#' identical to the mean. This test has tr(H-1 I) df.
+#' identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta$} as a test statistic in a chi-square
+#' test with \eqn{\tr[H^{-1} \mathcal{I}]} df, where H is the Hessian of the penalised model
+#' and \mathcal{I} is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only. 
+#' As noted by Therneau (2003) this test may be somewhat optimistic. Here, we are using \eqn{z^2 = \sum_i\beta_i^2/H_{ii}},
+#' which appears to be a more conservative choice, but the consequences remain to be thoroughly evaluated.  
+#' 
+#' @references  R. J. Gray (1992). Flexible Methods for Analyzing Survival Data Using Splines, with Applications to Breast Cancer Prognosis. Journal of the American Statistical Association, 87:942-951. http://dx.doi.org/10.1080/01621459.1992.10476248
+#' T. M. Therneau, P. M. Grambsch, and V. S. Pankratz (2003). Penalized Survival Models and Frailty. Journal of Computational and Graphical Statistics, 12:156-175. http://dx.doi.org/10.1198/1061860031365
 #' @param x A CoxRFX model
 #' @return NULL
 #' 

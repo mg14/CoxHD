@@ -3,10 +3,12 @@
 \alias{terms.CoxCPSS}
 \title{Extract terms}
 \usage{
-\method{terms}{CoxCPSS}(x)
+\method{terms}{CoxCPSS}(x, ...)
 }
 \arguments{
 \item{x}{A CoxCPSS fit}
+
+\item{...}{Currently not used}
 }
 \value{
 terms

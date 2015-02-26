@@ -1,5 +1,8 @@
 CoxHD
 -----
+
+[![Build Status](https://travis-ci.org/mg14/CoxHD.svg)](https://travis-ci.org/mg14/CoxHD)
+
 An R package with high-dimensional extensions of the Cox proportional hazards model.
 
 It includes:

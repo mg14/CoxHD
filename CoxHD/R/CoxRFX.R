@@ -460,7 +460,7 @@ StandardizeMagnitude <- function(X){
 }
 
 #' Plot a CoxRFX model
-#' @param fit 
+#' @param x 
 #' @param col 
 #' @param order 
 #' @param xlim 
@@ -470,18 +470,18 @@ StandardizeMagnitude <- function(X){
 #' 
 #' @author mg14
 #' @export
-plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")), order = 1:nlevels(fit$groups), xlim=range(coef(fit)), xlab="Coefficient",...){
-	plot(NA,NA, xlim=xlim, ylim=range(1,1+nlevels(fit$groups)), yaxt="n", ylab="",xlab=xlab, ...)
-	axis(side=2, at=1:nlevels(fit$groups), labels = levels(fit$groups)[order], las=2)
+plot.CoxRFX <- function(x, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")), order = 1:nlevels(x$groups), xlim=range(coef(x)), xlab="Coefficient",...){
+	plot(NA,NA, xlim=xlim, ylim=range(1,1+nlevels(x$groups)), yaxt="n", ylab="",xlab=xlab, ...)
+	axis(side=2, at=1:nlevels(x$groups), labels = levels(x$groups)[order], las=2)
 	i <- 1
-	for(l in levels(fit$groups)[order]){
-		m <- fit$mu[l]
-		s <- fit$sigma2[l]
-		x <- seq(m-3*sqrt(s),m+3*sqrt(s), l=100)
-		y <- i+dnorm(x, m, sqrt(s))/dnorm(m, m, sqrt(s))*.8
-		polygon(x,y, col=paste(col[order][i],"44", sep=""), border=NA)
-		lines(x, y, col=col[order][i])
-		points(fit$coef[fit$groups==l],rep(i, sum(fit$groups==l)), col=col[order][i], pch=16, cex=.5)
+	for(l in levels(x$groups)[order]){
+		m <- x$mu[l]
+		s <- x$sigma2[l]
+		xx <- seq(m-3*sqrt(s),m+3*sqrt(s), l=100)
+		y <- i+dnorm(xx, m, sqrt(s))/dnorm(m, m, sqrt(s))*.8
+		polygon(xx,y, col=paste(col[order][i],"44", sep=""), border=NA)
+		lines(xx, y, col=col[order][i])
+		points(x$coefficients[x$groups==l],rep(i, sum(x$groups==l)), col=col[order][i], pch=16, cex=.5)
 		lines(rep(m,2),c(0,.8) +i, col=col[order][i])
 		i <- i+1
 	}
@@ -492,8 +492,11 @@ plot.CoxRFX <- function(fit, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")),
 #' 
 #' This separately tests the null-hypothesis of being zero on each coefficient in a CoxRFX model using a Wald test. The test
 #' statistic is \eqn{z^2 = \beta^2/ Var[\beta]}.
+#' 
+#' @note Note that there is a lively debate about testing random effects in generalised linear models. See for example
+#' http://glmm.wikidot.com/faq
 #' @param coxRFX The CoxRFX model
-#' @param var Which type of variance estimate to use. The default choice is var2 = H^{-1} \mathcal{I} H^{-1}. A more conservative choice is var = H^{-1}.
+#' @param var Which type of variance estimate to use. The default choice is var2 = H^{-1} I H^{-1}. A more conservative choice is var = H^{-1}.
 #' @return A data.frame with columns coef, sd, z and p.value
 #' 
 #' @author mg14
@@ -513,43 +516,47 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 #' For the means a Wald test with 1 df is computed testing the null-hypothesis of being zero.
 #' 
 #' The null-hypothesis of zero variance is tested using a combined Wald test that all coefficients in the group are
-#' identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta$} as a test statistic in a chi-square
-#' test with \eqn{\tr[H^{-1} \mathcal{I}]} df, where H is the Hessian of the penalised model
-#' and \mathcal{I} is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only. 
+#' identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta} as a test statistic in a chi-square
+#' test with \eqn{\mathrm{tr}[H^{-1} I]}{tr[H^{-1} I]} df, where H is the Hessian of the penalised model
+#' and I is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only. 
 #' As noted by Therneau (2003) this test may be somewhat optimistic. Here, we are using \eqn{z^2 = \sum_i\beta_i^2/H_{ii}},
 #' which appears to be a more conservative choice, but the consequences remain to be thoroughly evaluated.  
 #' 
+#' @note Note that there is a lively debate about testing random effects in generalised linear models. See for example
+#' http://glmm.wikidot.com/faq
+#' 
 #' @references  R. J. Gray (1992). Flexible Methods for Analyzing Survival Data Using Splines, with Applications to Breast Cancer Prognosis. Journal of the American Statistical Association, 87:942-951. http://dx.doi.org/10.1080/01621459.1992.10476248
 #' T. M. Therneau, P. M. Grambsch, and V. S. Pankratz (2003). Penalized Survival Models and Frailty. Journal of Computational and Graphical Statistics, 12:156-175. http://dx.doi.org/10.1198/1061860031365
-#' @param x A CoxRFX model
+#' @param object A CoxRFX model
+#' @param ... Currently unused
 #' @return NULL
 #' 
 #' @author mg14
 #' @export
 #' @importFrom mg14 sig2star
-summary.CoxRFX <- function(x){
-	which.mu <- names(x$mu)[x$mu!=0]
-	p <- z <- s <- x$mu
-	z[which.mu] <- x$mu[which.mu]/sqrt(diag(as.matrix(x$mu.var2)))
-	s[which.mu] <- sqrt(diag(as.matrix(x$mu.var2)))
+summary.CoxRFX <- function(object, ...){
+	which.mu <- names(object$mu)[object$mu!=0]
+	p <- z <- s <- object$mu
+	z[which.mu] <- object$mu[which.mu]/sqrt(diag(as.matrix(object$mu.var2)))
+	s[which.mu] <- sqrt(diag(as.matrix(object$mu.var2)))
 	p <- pchisq(z^2,1,lower.tail=FALSE)
 	p[!names(p) %in% which.mu] <- NA
 	cat("Means:\n")
-	show(format(data.frame(mean=x$mu, sd=s, z=z, p.val=p, sig=sig2star(p)), digits=2))
+	show(format(data.frame(mean=object$mu, sd=s, z=z, p.val=p, sig=sig2star(p)), digits=2))
 	cat("\nVariances:\n")
-	v <- x$sigma2
-	c <- coef(x) - x$mu[x$groups] ## centred coefficients
-	chisq <- sapply(split(c^2/diag(x$Hinv)[1:length(c)], x$groups), sum)
-	df <- x$df[-(nlevels(x$groups)+1)]
+	v <- object$sigma2
+	c <- coef(object) - object$mu[object$groups] ## centred coefficients
+	chisq <- sapply(split(c^2/diag(object$Hinv)[1:length(c)], object$groups), sum)
+	df <- object$df[-(nlevels(object$groups)+1)]
 	p <- pchisq(chisq, df, lower.tail=FALSE)
 #	f <- as.numeric(table(x$groups)/x$df[-(nlevels(x$groups)+1)])
 #	u <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.025, length(x)))
 #	l <- sapply(split(coef(x), x$groups), function(x) sum((x-mean(x))^2)/qchisq(0.975, length(x)))
 	show(format(data.frame(sigma2=v, chisq=chisq, df = df, p.val=p, sig=sig2star(p)), digits=2))
 	cat("\nPartial log hazard:\n")
-	p <- PartialRisk(x)
-	v <- VarianceComponents(x)
-	e <- colMeans(PartialRiskVar(x))
+	p <- PartialRisk(object)
+	v <- VarianceComponents(object)
+	e <- colMeans(PartialRiskVar(object))
 	show(format(data.frame(`Cov[g,g]`=c(diag(cov(p)), TOTAL=NaN), `Sum(Cov[,g])`=c(rowSums(cov(p)),TOTAL=sum(cov(p))), `MSE`=c(e, TOTAL=v[length(v)]), check.names = FALSE),  digits=2))
 }
 
@@ -557,11 +564,12 @@ summary.CoxRFX <- function(x){
 #' 
 #' This function implicitly calls summary.CoxRFX().
 #' @param x CoxRFX
+#' @param ... Currently unused
 #' @return NULL
 #' 
 #' @author mg14
 #' @export
-print.CoxRFX <- function(x){
+print.CoxRFX <- function(x, ...){
 	summary.CoxRFX(x)
 }
 

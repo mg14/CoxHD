@@ -3,10 +3,10 @@
 \alias{predict.CoxCPSS}
 \title{Predict method for a CoxCPSS object}
 \usage{
-\method{predict}{CoxCPSS}(x, ...)
+\method{predict}{CoxCPSS}(object, ...)
 }
 \arguments{
-\item{x}{A CoxCPSS fit}
+\item{object}{A CoxCPSS fit}
 
 \item{...}{Parameters passed on to predict.coxph}
 }

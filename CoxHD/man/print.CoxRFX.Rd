@@ -3,10 +3,12 @@
 \alias{print.CoxRFX}
 \title{Print method for CoxRFX}
 \usage{
-print.CoxRFX(x)
+print.CoxRFX(x, ...)
 }
 \arguments{
 \item{x}{CoxRFX}
+
+\item{...}{Currently unused}
 }
 \description{
 This function implicitly calls summary.CoxRFX().

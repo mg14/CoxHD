@@ -204,7 +204,6 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 #' @param ylim 
 #' @param ... 
 #' @return NULL
-#' @S3method plot CoxCPSS
 #' 
 #' @author mg14
 #' @export
@@ -264,11 +263,12 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 
 #' Print a CoxCPSS model
 #' @param x The CoxCPSS model
+#' @param ... Currently unused
 #' @return NULL 
 #' 
 #' @author mg14
 #' @export
-print.CoxCPSS <- function(x){
+print.CoxCPSS <- function(x,...){
 	cat("\nStability selection:\n")
 	cat(paste(format(paste(c("Variable", names(which(x$Pi>x$pi.thr))), "")),format(c("P[select] ", format(x$Pi[which(x$Pi>x$pi.thr)], digits=2))), format(c("P-value ", format(x$Pval[which(x$Pi>x$pi.thr)], digits=2))),format(c("adj. P ", format(x$adj.Pval[which(x$Pi>x$pi.thr)], digits=2))), sep=""),sep="\n")
 	cat("\n")
@@ -277,21 +277,22 @@ print.CoxCPSS <- function(x){
 }
 
 #' Predict method for a CoxCPSS object
-#' @param x A CoxCPSS fit
+#' @param object A CoxCPSS fit
 #' @param ... Parameters passed on to predict.coxph
 #' @return Depending on the arguments ... either a vector of the log hazard ratio, or something else.
 #' 
 #' @author mg14
 #' @export
-predict.CoxCPSS <- function(x, ...){
-	predict(x$coxph, ...)
+predict.CoxCPSS <- function(object, ...){
+	predict(object$coxph, ...)
 }
 
 
 #' Extract terms
 #' @param x  A CoxCPSS fit
+#' @param ... Currently not used
 #' @return terms
 #' 
 #' @author mg14
 #' @export
-terms.CoxCPSS <- function(x) terms(x$coxph)
+terms.CoxCPSS <- function(x, ...) terms(x$coxph)

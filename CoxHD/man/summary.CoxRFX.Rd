@@ -3,10 +3,12 @@
 \alias{summary.CoxRFX}
 \title{A summary method for CoxRFX models}
 \usage{
-summary.CoxRFX(x)
+summary.CoxRFX(object, ...)
 }
 \arguments{
-\item{x}{A CoxRFX model}
+\item{object}{A CoxRFX model}
+
+\item{...}{Currently unused}
 }
 \description{
 This model prints the means and variances for each groups of covariates, as well as the variance components.
@@ -14,11 +16,15 @@ For the means a Wald test with 1 df is computed testing the null-hypothesis of b
 }
 \details{
 The null-hypothesis of zero variance is tested using a combined Wald test that all coefficients in the group are
-identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta$} as a test statistic in a chi-square
-test with \eqn{\tr[H^{-1} \mathcal{I}]} df, where H is the Hessian of the penalised model
-and \mathcal{I} is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only.
+identical to the mean. Gray (1992) suggests to use \eqn{\beta H^{-1} \beta} as a test statistic in a chi-square
+test with \eqn{\mathrm{tr}[H^{-1} I]}{tr[H^{-1} I]} df, where H is the Hessian of the penalised model
+and I is the Hessian of the unpenalised coxph model. Note that all variables taken over the subset of interest only.
 As noted by Therneau (2003) this test may be somewhat optimistic. Here, we are using \eqn{z^2 = \sum_i\beta_i^2/H_{ii}},
 which appears to be a more conservative choice, but the consequences remain to be thoroughly evaluated.
+}
+\note{
+Note that there is a lively debate about testing random effects in generalised linear models. See for example
+http://glmm.wikidot.com/faq
 }
 \author{
 mg14

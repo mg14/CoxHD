@@ -3,10 +3,12 @@
 \alias{print.CoxCPSS}
 \title{Print a CoxCPSS model}
 \usage{
-print.CoxCPSS(x)
+print.CoxCPSS(x, ...)
 }
 \arguments{
 \item{x}{The CoxCPSS model}
+
+\item{...}{Currently unused}
 }
 \description{
 Print a CoxCPSS model

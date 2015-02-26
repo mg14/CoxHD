@@ -1,0 +1,13 @@
+language: r
+
+r_packages:
+ - devtools
+ - knitr
+
+r_github_packages:
+ - mg14/mg14
+
+before_install:
+    - cd CoxHD
+    
+

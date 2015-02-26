@@ -8,7 +8,7 @@ WaldTest(coxRFX, var = c("var2", "var"))
 \arguments{
 \item{coxRFX}{The CoxRFX model}
 
-\item{var}{Which type of variance estimate to use. The default choice is var2 = H^{-1} \mathcal{I} H^{-1}. A more conservative choice is var = H^{-1}.}
+\item{var}{Which type of variance estimate to use. The default choice is var2 = H^{-1} I H^{-1}. A more conservative choice is var = H^{-1}.}
 }
 \value{
 A data.frame with columns coef, sd, z and p.value
@@ -16,6 +16,10 @@ A data.frame with columns coef, sd, z and p.value
 \description{
 This separately tests the null-hypothesis of being zero on each coefficient in a CoxRFX model using a Wald test. The test
 statistic is \eqn{z^2 = \beta^2/ Var[\beta]}.
+}
+\note{
+Note that there is a lively debate about testing random effects in generalised linear models. See for example
+http://glmm.wikidot.com/faq
 }
 \author{
 mg14

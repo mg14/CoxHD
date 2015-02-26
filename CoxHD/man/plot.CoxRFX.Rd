@@ -3,12 +3,12 @@
 \alias{plot.CoxRFX}
 \title{Plot a CoxRFX model}
 \usage{
-\method{plot}{CoxRFX}(fit, col = c(brewer.pal(9, "Set1"), brewer.pal(8,
-  "Dark2")), order = 1:nlevels(fit$groups), xlim = range(coef(fit)),
+\method{plot}{CoxRFX}(x, col = c(brewer.pal(9, "Set1"), brewer.pal(8,
+  "Dark2")), order = 1:nlevels(x$groups), xlim = range(coef(x)),
   xlab = "Coefficient", ...)
 }
 \arguments{
-\item{fit}{}
+\item{x}{}
 
 \item{col}{}
 

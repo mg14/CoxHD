@@ -27,14 +27,10 @@ SimSurvNonp <- function(risk, surv, H0 = basehaz(coxph(surv ~ 1))) {
 	deathTimes = FHazInv(rexp(n, exp(risk))) #predict(hazardDist, rexp(n, exp(risk)))
 	
 	## Simulate censoring times
-	nCens <- sum(surv[,2]==0, na.rm=TRUE)
-	FSurv <- splinefun(exp(-H0$hazard) ~ H0$time, method="monoH.FC") ## Cum survival dist
-	x <- sort(na.omit(surv[surv[,2]==0,1])) ## observed (conditioned) censored times
-	t <- table(x) / nCens ## empirical Dist of cond. censoring times
-	y <- t / FSurv(unique(x)) ## Need to get unconditional distribution
-	FCens <- cumsum(y)
-	FCens <- FCens/max(FCens) ## Unconditioned cens.
-	FCensInv <- splinefun(unique(x) ~ FCens, method="monoH")
+	f <- surv
+	f[,2] <- 1-f[,2]
+	F <- survfit(f~1)
+	FCensInv <- splinefun(F$surv, F$time)
 	censTimes <- FCensInv(runif(n,0,1)) ## Simulate censoring times
 	
 	## Put together

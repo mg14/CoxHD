@@ -291,11 +291,11 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 	}else{
 		rp <- rn <- NULL
 	}
-	pie(vp, col=col[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, digits),rp,")",sep=""), radius = sum(v), init.angle=90)
+	pie(vp, col=col[names(vp)], border=NA, labels=paste(names(vp), " (", round(vp, digits),rp,")",sep=""), radius = sqrt(sum(v)), init.angle=90)
 	
 	if(length(vn)>0){
 		par(new=T)
-		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sum(v), init.angle=90)
+		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sqrt(sum(v)), init.angle=90)
 	}
 }
 

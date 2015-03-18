@@ -1,8 +1,8 @@
 Package: CoxHD
 Type: Package
 Title: High-dimensional extensions of the Cox proportional hazards model
-Version: 0.0.50
-Date: Wed Mar 4 10:24:00 GMT 2015
+Version: 0.0.51
+Date: Wed Mar 18 16:26:21 GMT 2015
 Author: Moritz Gerstung
 Maintainer: <mg14@sanger.ac.uk>
 Description: This package includes two extensions of the Cox proportional

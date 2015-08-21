@@ -177,7 +177,7 @@ CoxRFX <- function(Z, surv, groups = rep(1, ncol(Z)), which.mu = unique(groups),
 	fit$mu.var2 = var2[-(1:p),-(1:p)] ## covariance of mean (var2)
 	fit$means = fit$means[1:p][j]
 	fit$coefficients <- (fit$coefficients %*% C)[j]
-	names(fit$coefficients) = colnames(Z)[j]
+	names(fit$means) <- names(fit$coefficients) <-  colnames(Z)[j]
 	fit$terms <- fit$terms[1:length(uniqueGroups)]
 	fit$penalized.loglik <- fit$loglik[2] - fit$penalty[2] - 1/2 * sum(log(fit$sigma2[groups]))
 	## Fake call for predict.coxph and survfit.coxph

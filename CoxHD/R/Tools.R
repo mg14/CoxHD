@@ -108,3 +108,72 @@ MakeTimeDependent <- function(dataFrame, timeEvent, timeStop = dataFrame$time, t
 	d$status <- e
 	return(d)
 }
+
+
+#' Post-hoc competing risk adjustment for two Kaplan-Meier curves.
+#' 
+#' The function uses a monotonous spline fit to interpolate between the steps of the fit.
+#' @param fit1 
+#' @param fit2 
+#' @return a survfit object with updated incidence and confidence intervals
+#' 
+#' @author mg14
+crAdjust <- function(fit1, fit2){
+	int2 <- splinefun(fit2$time, fit2$surv,  method="monoH.FC")
+	fit1$surv <- cumsum(c(1,diff(fit1$surv)) * int2(fit1$time))
+	fit1$upper <- cumsum(c(1,diff(fit1$upper)) * int2(fit1$time))
+	fit1$lower <- cumsum(c(1,diff(fit1$lower)) * int2(fit1$time))
+}
+
+#' Extract and predict survival status
+#' 
+#' This function extracts the survival status at a given time t. For censored patients at time t_cens < t, the 
+#' predicted status is S[t]/S[t_cens] if censored="conditional" and NA otherwise.
+#' @param surv As Surv() object. Currently only right-censoring supported.
+#' @param time The time at which to extract the survival status.
+#' @param censored A character vector, either "conditional" or "na".
+#' @return A vector with the survival status.
+#' 
+#' @author mg14
+#' @export
+survStatus <- function(surv, time, censored=c("conditional","na")){
+	censored <- match.arg(censored)
+	o <- ifelse(ncol(surv)==2, 0, 1)
+	if(o==1) warning("Only right-censored data are supported.")
+	pSurv <- function(time, surv){
+		s <- summary(survfit(surv ~ 1))
+		w <- rowSums(matrix(rep(s$time, each=length(time)), nrow=length(time))<=time)
+		c(1,s$surv)[w+1]
+	}
+	absSurv <- pSurv(time, surv)
+	status <- surv[,1+o] >= time
+	w <- which(surv[,2+o]==0 & surv[,1+o] < time)
+	if(censored=="na") 
+		condSurv <- NA
+	else
+		condSurv <- absSurv/pSurv(surv[w,1+o], surv)
+	status[w] <- condSurv
+	return(status)
+}
+
+#' Evaluation of absolute prediction errors. 
+#' 
+#' Given predictions p in [0,1], the function evaluates the mean absolute prediction error sum(|p-status|)/n, the mean squared error (Brier score)
+#' sum((p-status)^2)/n, the log2 entropy sum(p * log2(status/p))/n, and a Bayes misclassification rate sum((p>.5)*(1-status))/n. If the 
+#' status is extrapolated with probability in [0,1], weighted averages are reported.
+#' @param x A vector with the predictions in [0,1]
+#' @param surv The Surv() object of the observed survival.
+#' @param time The time at which the predictions are to be evaluated.
+#' @param censored A character vector indicating the strategy to handle cases censored before time.
+#' @return A vector of length
+#' 
+#' @author mg14
+#' @export
+ape <- function(x, surv, time, censored="conditional"){
+	status <- survStatus(surv, time, censored=censored)
+	err <- c(abs=mean(status*(1-x) + (1-status)*x, na.rm=TRUE),
+			brier=mean(status*(1-x)^2 + (1-status)*x^2, na.rm=TRUE),
+			log2=mean((log2((status/x)^status)+log2(((1-status)/(1-x))^(1-status))), na.rm=TRUE),
+			bayes=mean((x>.5) != (status>.5), na.rm=TRUE))
+	return(err)
+}

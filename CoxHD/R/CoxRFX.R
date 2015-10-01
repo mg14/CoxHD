@@ -369,7 +369,7 @@ PredictRiskMissing <- function(fit, newZ=fit$Z, var = c("var2","var"), bound=TRU
 	mu <- colMeans(fit$Z)
 	rangeZ <- apply(fit$Z,2,range, na.rm=TRUE)
 	beta <- fit$coefficients
-	newZ <- newZ[,names(beta)]
+	newZ <- newZ[,names(beta), drop=FALSE]
 	
 	.predict <- function(newZ, beta, Sigma, mu, rangeZ){
 		missing <- is.na(newZ)

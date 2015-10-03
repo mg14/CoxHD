@@ -148,11 +148,13 @@ survStatus <- function(surv, time, censored=c("conditional","na")){
 	absSurv <- pSurv(time, surv)
 	status <- surv[,1+o] >= time
 	w <- which(surv[,2+o]==0 & surv[,1+o] < time)
-	if(censored=="na") 
-		condSurv <- NA
-	else
-		condSurv <- absSurv/pSurv(surv[w,1+o], surv)
-	status[w] <- condSurv
+	if(length(w) > 0){
+		if(censored=="na") 
+			condSurv <- NA
+		else 
+			condSurv <- absSurv/pSurv(surv[w,1+o], surv)
+		status[w] <- condSurv
+	}
 	return(status)
 }
 

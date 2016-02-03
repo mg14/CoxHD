@@ -283,9 +283,9 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 			o <- TRUE
 	else 
 		o <- order
+	v <- v[o]
 	if(!absolute)
 		v <- v/sum(v)
-	v <- v[o]
 	vp <- v[v>0]
 	vn <- v[v<=0]
 	if(conf.int){
@@ -302,6 +302,7 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 		par(new=T)
 		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sqrt(sum(v)), init.angle=90)
 	}
+	invisible(list(vc=v, ci=ifelse(!is.null(ci), ci, NULL)))
 }
 
 VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$Z), invert = TRUE, value=TRUE), type=c("diag","colSums"), method="simple"){

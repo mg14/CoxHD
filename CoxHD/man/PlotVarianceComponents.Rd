@@ -4,7 +4,7 @@
 \title{Plot variance components}
 \usage{
 PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
-  groups = fit$groups, type = "rowSums", conf.int = TRUE, digits = 2,
+  groups = fit$groups, type = "rowSums", conf.int = FALSE, digits = 2,
   var = c("var2", "var"), order = TRUE)
 }
 \arguments{

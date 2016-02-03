@@ -269,7 +269,7 @@ VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.a
 #' 
 #' @author mg14
 #' @export
-PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=TRUE, digits=2, var=c("var2","var"), order=TRUE) {
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=FALSE, digits=2, var=c("var2","var"), order=TRUE) {
 	var <- match.arg(var)
 	if(is.null(names(col)))
 		names(col) <- levels(groups)
@@ -285,7 +285,8 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 	vp <- v[v>0]
 	vn <- v[v<=0]
 	if(conf.int){
-		r <- paste( "+/-",signif(colMeans(PartialRiskVar(fit, groups=groups, var=var))[o], 1))
+		ci <- VarianceComponentsCI(fit, q=c(0.025, 0.975))
+		r <- apply(signif(ci[,o], 2), 2, function(x) paste(c("; ", paste(x,collapse="-")), collapse=""))
 		rp <- r[v>0]
 		rn <- r[v<=0]
 	}else{
@@ -443,6 +444,10 @@ ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs", bound=TRUE){
 	return(imputations)
 }
 
+#' @noRd 
+#' @export
+ImputeXMissing <- function(x) .Defunct(ImputeMissing, package = NULL, "ImputeXMissing is now defunct. Please use ImputeMissing instead.")
+
 #' Standardize the magnitude of covariates
 #' @param X 
 #' @return data.frame of dim(X)
@@ -573,3 +578,28 @@ print.CoxRFX <- function(x, ...){
 	summary.CoxRFX(x)
 }
 
+
+#' Confidence intervals of variance components
+#' 
+#' This function numerically computes confidence intervals for the variance components, based sampling on the variances of individual effects.
+#' @param fit The CoxRFX model
+#' @param newZ The Z (data matrix). Default = fit$Z
+#' @param groups The groups. Default fit$groups
+#' @param q The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95% confidence intervals.
+#' @param n The number of samples. Default = 200.
+#' @param mc.cores The number of mc.cores to use. Default=1.
+#' @return A numeric matrix with summary statistics. 
+#' 
+#' @author mg14
+#' @export
+VarianceComponentsCI <- function(fit, newZ=fit$Z, groups=fit$groups, q = c(0.025, 0.5, 0.975), n=200, mc.cores=1){
+	V <- simplify2array(mclapply(1:n, function(foo){
+						set.seed(foo)
+						newBeta <- mvtnorm::rmvnorm(1,coef(fit), fit$var2)
+						rowSums(cov(sapply(levels(groups), function(x) {
+													ix <- groups == x
+													as.matrix(newZ[,ix, drop=FALSE]) %*% newBeta[ix] 
+												})))
+					}, mc.cores=mc.cores))
+	apply(V,1, quantile, q)
+}

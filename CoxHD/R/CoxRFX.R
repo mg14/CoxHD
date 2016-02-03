@@ -262,6 +262,8 @@ VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.a
 #' @param groups the groups to be used, if different from the fitted ones.
 #' @param type The type of variance compnents: Either 'rowSums' (default) or 'diag'. Rowsums sum up to the actual variance of the linear predictor, but can be
 #' negative. Plotting just the 'diag'onal elements guarantees positive components
+#' @param conf.int Plot confidence intervals? Default = FALSE
+#' @param absolute Whether to plot the absolute variance of the log hazard (TRUE, default), or the relative contribution.
 #' @param var Which variance estimated to take for the average prediction error. Choices are var2 and var.
 #' @param order Logical or integer. Whether, or if integer how,  the variance components should be ordered/
   
@@ -269,7 +271,7 @@ VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.a
 #' 
 #' @author mg14
 #' @export
-PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=FALSE, digits=2, var=c("var2","var"), order=TRUE) {
+PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$groups, type="rowSums", conf.int=FALSE, absolute=TRUE, digits=2, var=c("var2","var"), order=TRUE) {
 	var <- match.arg(var)
 	if(is.null(names(col)))
 		names(col) <- levels(groups)
@@ -281,6 +283,8 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 			o <- TRUE
 	else 
 		o <- order
+	if(!absolute)
+		v <- v/sum(v)
 	v <- v[o]
 	vp <- v[v>0]
 	vn <- v[v<=0]
@@ -587,19 +591,28 @@ print.CoxRFX <- function(x, ...){
 #' @param groups The groups. Default fit$groups
 #' @param q The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95% confidence intervals.
 #' @param n The number of samples. Default = 200.
+#' @param type The type. Either rowSums or diag(onal).
+#' @param absolute Whether the absolute variance of the log hazard should be returned (default), or the relative contributions V_i/sum(V).
 #' @param mc.cores The number of mc.cores to use. Default=1.
 #' @return A numeric matrix with summary statistics. 
 #' 
 #' @author mg14
 #' @export
-VarianceComponentsCI <- function(fit, newZ=fit$Z, groups=fit$groups, q = c(0.025, 0.5, 0.975), n=200, mc.cores=1){
+VarianceComponentsCI <- function(fit, newZ=fit$Z, groups=fit$groups, q = c(0.025, 0.5, 0.975), type = c("rowSums","diag"), absolute=TRUE, n=200, mc.cores=1){
+	type=match.arg(type)
 	V <- simplify2array(mclapply(1:n, function(foo){
 						set.seed(foo)
 						newBeta <- mvtnorm::rmvnorm(1,coef(fit), fit$var2)
-						rowSums(cov(sapply(levels(groups), function(x) {
-													ix <- groups == x
-													as.matrix(newZ[,ix, drop=FALSE]) %*% newBeta[ix] 
-												})))
+						c <- cov(sapply(levels(groups), function(x) {
+											ix <- groups == x
+											as.matrix(newZ[,ix, drop=FALSE]) %*% newBeta[ix] 
+										}))
+						if(type=="rowSums")
+							rowSums(c)
+						else
+							diag(c)
 					}, mc.cores=mc.cores))
+	if(absolute==FALSE)
+		V <- V/rep(colSums(V), each=nrow(V))
 	apply(V,1, quantile, q)
 }

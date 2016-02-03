@@ -4,8 +4,8 @@
 \title{Plot variance components}
 \usage{
 PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
-  groups = fit$groups, type = "rowSums", conf.int = FALSE, digits = 2,
-  var = c("var2", "var"), order = TRUE)
+  groups = fit$groups, type = "rowSums", conf.int = FALSE,
+  absolute = TRUE, digits = 2, var = c("var2", "var"), order = TRUE)
 }
 \arguments{
 \item{fit}{The CoxRFX fit}
@@ -16,6 +16,10 @@ PlotVarianceComponents(fit, col = 1:nlevels(fit$groups),
 
 \item{type}{The type of variance compnents: Either 'rowSums' (default) or 'diag'. Rowsums sum up to the actual variance of the linear predictor, but can be
 negative. Plotting just the 'diag'onal elements guarantees positive components}
+
+\item{conf.int}{Plot confidence intervals? Default = FALSE}
+
+\item{absolute}{Whether to plot the absolute variance of the log hazard (TRUE, default), or the relative contribution.}
 
 \item{var}{Which variance estimated to take for the average prediction error. Choices are var2 and var.}
 

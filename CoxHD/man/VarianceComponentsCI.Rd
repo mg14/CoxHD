@@ -4,7 +4,8 @@
 \title{Confidence intervals of variance components}
 \usage{
 VarianceComponentsCI(fit, newZ = fit$Z, groups = fit$groups, q = c(0.025,
-  0.5, 0.975), n = 200, mc.cores = 1)
+  0.5, 0.975), type = c("rowSums", "diag"), absolute = TRUE, n = 200,
+  mc.cores = 1)
 }
 \arguments{
 \item{fit}{The CoxRFX model}
@@ -16,6 +17,10 @@ VarianceComponentsCI(fit, newZ = fit$Z, groups = fit$groups, q = c(0.025,
 \item{q}{The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95% confidence intervals.}
 
 \item{n}{The number of samples. Default = 200.}
+
+\item{type}{The type. Either rowSums or diag(onal).}
+
+\item{absolute}{Whether the absolute variance of the log hazard should be returned (default), or the relative contributions V_i/sum(V).}
 
 \item{mc.cores}{The number of mc.cores to use. Default=1.}
 }

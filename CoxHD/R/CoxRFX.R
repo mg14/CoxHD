@@ -303,7 +303,7 @@ PlotVarianceComponents <- function(fit, col=1:nlevels(fit$groups), groups = fit$
 		par(new=T)
 		pie(c(abs(vn), sum(vp)-sum(vn)), col=c(col[names(vn)],NA), border=NA, labels=paste(names(vn), " (", round(vn, digits),rn,")", sep=""), new=FALSE, density=c(rep(36, length(vn) ),NA), radius = sqrt(sum(v)), init.angle=90)
 	}
-	invisible(list(vc=v, ci=ifelse(!is.null(ci), ci, NULL)))
+	invisible(list(vc=v, ci=ci))
 }
 
 VarianceComponentsCV <- function(fit, which.coef = grep(":", colnames(fit$Z), invert = TRUE, value=TRUE), type=c("diag","colSums"), method="simple"){

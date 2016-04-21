@@ -12,6 +12,8 @@ PartialRiskVar(fit, newZ = fit$Z, groups = fit$groups, var = c("var2",
 \item{newZ}{New data, defaults to fit$Z}
 
 \item{groups}{The groups, defaults to fit$groups}
+
+\item{var}{Variance type. Either 'var' or 'var2'}
 }
 \value{
 A matrix with the confidence interval (prediction variance) for each risk component

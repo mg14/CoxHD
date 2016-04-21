@@ -60,8 +60,8 @@ TestInteractionsCPH <- function(data, survival, pairs, whichMain = colnames(data
 
 #' Pairwise interactions.
 #' This function creates all pairwise interaction (product) terms of two data.frames()
-#' @param X 
-#' @param Y 
+#' @param X A data.frame or matrix for which product terms should be computed
+#' @param Y A data.frame or matrix for which product terms should be computed
 #' @return A data.frame() of dimensions nrow(X) by (ncol(X) x ncol(Y))
 #' 
 #' @author mg14
@@ -116,7 +116,7 @@ MakeTimeDependent <- function(dataFrame, timeEvent, timeStop = dataFrame$time, t
 #' @param fit1 
 #' @param fit2 
 #' @return a survfit object with updated incidence and confidence intervals
-#' 
+#' @noRd 
 #' @author mg14
 crAdjust <- function(fit1, fit2){
 	int2 <- splinefun(fit2$time, fit2$surv,  method="monoH.FC")

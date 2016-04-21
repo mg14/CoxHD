@@ -8,7 +8,7 @@
 
 #### Stability selection
 #' Complementary pairs stability selection for the Cox proportional hazards model
-#' @param X matrix or data.frame of the covariats
+#' @param X matrix or data.frame of the covariates
 #' @param surv a Surv() object
 #' @param bootstrap.samples Number of bootstrap samples (default = 50). Note: These give 100 samples for CPSS.
 #' @param nlambda Approximate number of datapoints for the LASSO penalty. Default 250.
@@ -25,7 +25,7 @@
 #' @param coxph Wether to fit a coxph model using the selected variables.
 #' @references R. D. Shah and R. J. Samworth (2013). Variable selection with error control: another look at stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 75:55--80. http://dx.doi.org/10.1111/j.1467-9868.2011.01034.x
 #' 
-#' N. Meinshausen and P. Bühlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
+#' N. Meinshausen and P. Buhlmann (2010). Stability selection. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 72:417--473. http://dx.doi.org/10.1111/j.1467-9868.2010.00740.x
 #' @return CoxCPSS
 #' 
 #' @author mg14
@@ -195,14 +195,14 @@ ErrorControlCPSS <- function(coxCPSS,  control = coxCPSS$control, level=coxCPSS$
 
 #' Plot a CoxCPSS model
 #' @param x a CoxCPSS model 
-#' @param xlab 
-#' @param ylab 
-#' @param lty 
-#' @param log 
-#' @param col 
-#' @param xlim 
-#' @param ylim 
-#' @param ... 
+#' @param xlab The x-label
+#' @param ylab The y-label
+#' @param lty Line type
+#' @param log Whether to use a log scale
+#' @param col The colors
+#' @param xlim x limits
+#' @param ylim y limits
+#' @param ... Additional options passed to plot()
 #' @return NULL
 #' 
 #' @author mg14
@@ -225,7 +225,7 @@ plot.CoxCPSS = function(x, xlab='1/lambda', ylab="Selection probability", lty = 
 #' @param X The covariates
 #' @param surv The survival object
 #' @param scope The set (indeces) of variables to test.
-#' @param ... 
+#' @param ... Additional arguments passed to CoxCPSS.
 #' @return CoxCPSS
 #' 
 #' @author mg14
@@ -265,7 +265,7 @@ CoxCPSSInteractions <- function(X, surv, scope = 1:ncol(X),...){
 #' @param x The CoxCPSS model
 #' @param ... Currently unused
 #' @return NULL 
-#' 
+#' @method print CoxCPSS
 #' @author mg14
 #' @export
 print.CoxCPSS <- function(x,...){

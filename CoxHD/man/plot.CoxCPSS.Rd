@@ -10,21 +10,21 @@
 \arguments{
 \item{x}{a CoxCPSS model}
 
-\item{xlab}{}
+\item{xlab}{The x-label}
 
-\item{ylab}{}
+\item{ylab}{The y-label}
 
-\item{lty}{}
+\item{lty}{Line type}
 
-\item{log}{}
+\item{log}{Whether to use a log scale}
 
-\item{col}{}
+\item{col}{The colors}
 
-\item{xlim}{}
+\item{xlim}{x limits}
 
-\item{ylim}{}
+\item{ylim}{y limits}
 
-\item{...}{}
+\item{...}{Additional options passed to plot()}
 }
 \description{
 Plot a CoxCPSS model

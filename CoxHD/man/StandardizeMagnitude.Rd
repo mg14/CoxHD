@@ -6,7 +6,7 @@
 StandardizeMagnitude(X)
 }
 \arguments{
-\item{X}{}
+\item{X}{A matrix or data.frame}
 }
 \value{
 data.frame of dim(X)

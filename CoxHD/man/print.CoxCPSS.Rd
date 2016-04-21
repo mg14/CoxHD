@@ -3,7 +3,7 @@
 \alias{print.CoxCPSS}
 \title{Print a CoxCPSS model}
 \usage{
-print.CoxCPSS(x, ...)
+\method{print}{CoxCPSS}(x, ...)
 }
 \arguments{
 \item{x}{The CoxCPSS model}

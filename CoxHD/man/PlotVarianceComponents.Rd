@@ -23,7 +23,9 @@ negative. Plotting just the 'diag'onal elements guarantees positive components}
 
 \item{var}{Which variance estimated to take for the average prediction error. Choices are var2 and var.}
 
-\item{order}{Logical or integer. Whether, or if integer how,  the variance components should be ordered/}
+\item{order}{Logical or integer. Whether, or if integer how,  the variance components should be ordered.}
+
+\item{digits}{The number of digits to plot.}
 }
 \description{
 Plot variance components

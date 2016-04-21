@@ -216,6 +216,7 @@ PartialRisk <- function(fit, newZ=fit$Z, groups=fit$groups) {
 #' @param fit The CoxRFX fit
 #' @param newZ New data, defaults to fit$Z
 #' @param groups The groups, defaults to fit$groups
+#' @param var Variance type. Either 'var' or 'var2'
 #' @return A matrix with the confidence interval (prediction variance) for each risk component
 #' 
 #' @author mg14
@@ -265,7 +266,8 @@ VarianceComponents <- function(fit, newZ = fit$Z[setdiff(1:nrow(fit$Z), fit$na.a
 #' @param conf.int Plot confidence intervals? Default = FALSE
 #' @param absolute Whether to plot the absolute variance of the log hazard (TRUE, default), or the relative contribution.
 #' @param var Which variance estimated to take for the average prediction error. Choices are var2 and var.
-#' @param order Logical or integer. Whether, or if integer how,  the variance components should be ordered/
+#' @param order Logical or integer. Whether, or if integer how,  the variance components should be ordered.
+#' @param digits The number of digits to plot.
   
 #' @return NULL
 #' 
@@ -450,12 +452,13 @@ ImputeMissing <- function(X, newX=X, use="pairwise.complete.obs", bound=TRUE){
 	return(imputations)
 }
 
-#' @noRd 
+#' @aliases ImputeMissing
+#' @rdname ImputeMissing
 #' @export
-ImputeXMissing <- function(x) .Defunct(ImputeMissing, package = NULL, "ImputeXMissing is now defunct. Please use ImputeMissing instead.")
+ImputeXMissing <- function(X, newX=X, use="pairwise.complete.obs", bound=TRUE) .Defunct(ImputeMissing, package = NULL, "ImputeXMissing is now defunct. Please use ImputeMissing instead.")
 
 #' Standardize the magnitude of covariates
-#' @param X 
+#' @param X A matrix or data.frame
 #' @return data.frame of dim(X)
 #' 
 #' @author mg14
@@ -471,31 +474,32 @@ StandardizeMagnitude <- function(X){
 }
 
 #' Plot a CoxRFX model
-#' @param x 
-#' @param col 
-#' @param order 
-#' @param xlim 
-#' @param xlab 
-#' @param ... 
-#' @return NULL
 #' 
+#' This plots a CoxRFX model
+#' @param x The CoxRFX object
+#' @param ... Additional parameters passed to plot(). This can include the non-standard argument order (=1:nlevels(x$groups)), to reorder the groups.
+#' @return NULL
+#' @method plot CoxRFX
 #' @author mg14
 #' @export
-plot.CoxRFX <- function(x, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")), order = 1:nlevels(x$groups), xlim=range(coef(x)), xlab="Coefficient",...){
-	plot(NA,NA, xlim=xlim, ylim=range(1,1+nlevels(x$groups)), yaxt="n", ylab="",xlab=xlab, ...)
-	axis(side=2, at=1:nlevels(x$groups), labels = levels(x$groups)[order], las=2)
-	i <- 1
-	for(l in levels(x$groups)[order]){
-		m <- x$mu[l]
-		s <- x$sigma2[l]
-		xx <- seq(m-3*sqrt(s),m+3*sqrt(s), l=100)
-		y <- i+dnorm(xx, m, sqrt(s))/dnorm(m, m, sqrt(s))*.8
-		polygon(xx,y, col=paste(col[order][i],"44", sep=""), border=NA)
-		lines(xx, y, col=col[order][i])
-		points(x$coefficients[x$groups==l],rep(i, sum(x$groups==l)), col=col[order][i], pch=16, cex=.5)
-		lines(rep(m,2),c(0,.8) +i, col=col[order][i])
-		i <- i+1
+plot.CoxRFX <- function(x, ...){
+	.plt <- function(x, col=c(brewer.pal(9,"Set1"), brewer.pal(8,"Dark2")), order = 1:nlevels(x$groups), xlim=range(coef(x)), xlab="Coefficient",...){
+		plot(NA,NA, xlim=xlim, ylim=range(1,1+nlevels(x$groups)), yaxt="n", ylab="",xlab=xlab, ...)
+		axis(side=2, at=1:nlevels(x$groups), labels = levels(x$groups)[order], las=2)
+		i <- 1
+		for(l in levels(x$groups)[order]){
+			m <- x$mu[l]
+			s <- x$sigma2[l]
+			xx <- seq(m-3*sqrt(s),m+3*sqrt(s), l=100)
+			y <- i+dnorm(xx, m, sqrt(s))/dnorm(m, m, sqrt(s))*.8
+			polygon(xx,y, col=paste(col[order][i],"44", sep=""), border=NA)
+			lines(xx, y, col=col[order][i])
+			points(x$coefficients[x$groups==l],rep(i, sum(x$groups==l)), col=col[order][i], pch=16, cex=.5)
+			lines(rep(m,2),c(0,.8) +i, col=col[order][i])
+			i <- i+1
+		}
 	}
+	.plt(x, ...)
 }
 
 
@@ -544,7 +548,7 @@ WaldTest <- function(coxRFX, var=c("var2","var")){
 #' 
 #' @author mg14
 #' @export
-#' @importFrom mg14 sig2star
+#' @method summary CoxRFX
 summary.CoxRFX <- function(object, ...){
 	which.mu <- names(object$mu)[object$mu!=0]
 	p <- z <- s <- object$mu
@@ -579,6 +583,7 @@ summary.CoxRFX <- function(object, ...){
 #' @return NULL
 #' 
 #' @author mg14
+#' @method print CoxRFX
 #' @export
 print.CoxRFX <- function(x, ...){
 	summary.CoxRFX(x)
@@ -591,7 +596,7 @@ print.CoxRFX <- function(x, ...){
 #' @param fit The CoxRFX model
 #' @param newZ The Z (data matrix). Default = fit$Z
 #' @param groups The groups. Default fit$groups
-#' @param q The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95% confidence intervals.
+#' @param q The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95\% confidence intervals.
 #' @param n The number of samples. Default = 200.
 #' @param type The type. Either rowSums or diag(onal).
 #' @param absolute Whether the absolute variance of the log hazard should be returned (default), or the relative contributions V_i/sum(V).

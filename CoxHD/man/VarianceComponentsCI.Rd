@@ -14,7 +14,7 @@ VarianceComponentsCI(fit, newZ = fit$Z, groups = fit$groups, q = c(0.025,
 
 \item{groups}{The groups. Default fit$groups}
 
-\item{q}{The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95% confidence intervals.}
+\item{q}{The quantiles to be evaluated. Default q = c(0.275, 0.5, 0.975), corresponding to the median and symmetric 95\% confidence intervals.}
 
 \item{n}{The number of samples. Default = 200.}
 

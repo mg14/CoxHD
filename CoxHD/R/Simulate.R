@@ -41,27 +41,27 @@ SimSurvNonp <- function(risk, surv, H0 = basehaz(coxph(surv ~ 1))) {
 
 #' Non-parametric data extrapolations based on multiple imputation
 #' A fraction percentMissing is set to NA and multiple imputation from the mice package is used to fill these gaps.
-#' @param oldData 
-#' @param nData 
-#' @param percentMissing 
-#' @param ... 
+#' @param X The original data. A matrix or data.frame.
+#' @param nData The number of new data points (rows).
+#' @param percentMissing Fraction of missing values. Default .33.
+#' @param ... Additional arguments passed to mice.
 #' @return A data.frame with extrapolated data
+#' @importFrom mice mice complete
 #' 
 #' @author mg14
 #' @export
-SimDataNonp <- function(oldData, nData, percentMissing = 0.33, ...){
-	require(mice)
-	oldData <- oldData[!apply(is.na(oldData), 1, all),]
-	for(i in 1: nrow(oldData)){
+SimDataNonp <- function(X, nData, percentMissing = 0.33, ...){
+	X <- X[!apply(is.na(X), 1, all),]
+	for(i in 1: nrow(X)){
 		while(TRUE){
-			naIdx <- sample(ncol(oldData), round(percentMissing * ncol(oldData)))
-			if(! all(1:ncol(oldData) %in% naIdx))
+			naIdx <- sample(ncol(X), round(percentMissing * ncol(X)))
+			if(! all(1:ncol(X) %in% naIdx))
 				break
 		}
-		oldData[i,naIdx] <- NA
+		X[i,naIdx] <- NA
 	}
 	#oldData <- as.matrix(oldData[sample(nrow(oldData), nData, replace=TRUE),])
-	m <- mice(as.data.frame(oldData), printFlag=FALSE, ...)
+	m <- mice(as.data.frame(X), printFlag=FALSE, ...)
 	newData <- complete(m, action="long")
 	newData <- newData[sample(nrow(newData), nData, replace=nrow(newData)< nData),-2:-1]
 	return(newData)

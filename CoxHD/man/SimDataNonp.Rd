@@ -4,16 +4,16 @@
 \title{Non-parametric data extrapolations based on multiple imputation
 A fraction percentMissing is set to NA and multiple imputation from the mice package is used to fill these gaps.}
 \usage{
-SimDataNonp(oldData, nData, percentMissing = 0.33, ...)
+SimDataNonp(X, nData, percentMissing = 0.33, ...)
 }
 \arguments{
-\item{oldData}{}
+\item{X}{The original data. A matrix or data.frame.}
 
-\item{nData}{}
+\item{nData}{The number of new data points (rows).}
 
-\item{percentMissing}{}
+\item{percentMissing}{Fraction of missing values. Default .33.}
 
-\item{...}{}
+\item{...}{Additional arguments passed to mice.}
 }
 \value{
 A data.frame with extrapolated data

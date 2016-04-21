@@ -3,25 +3,15 @@
 \alias{plot.CoxRFX}
 \title{Plot a CoxRFX model}
 \usage{
-\method{plot}{CoxRFX}(x, col = c(brewer.pal(9, "Set1"), brewer.pal(8,
-  "Dark2")), order = 1:nlevels(x$groups), xlim = range(coef(x)),
-  xlab = "Coefficient", ...)
+\method{plot}{CoxRFX}(x, ...)
 }
 \arguments{
-\item{x}{}
+\item{x}{The CoxRFX object}
 
-\item{col}{}
-
-\item{order}{}
-
-\item{xlim}{}
-
-\item{xlab}{}
-
-\item{...}{}
+\item{...}{Additional parameters passed to plot(). This can include the non-standard argument order (=1:nlevels(x$groups)), to reorder the groups.}
 }
 \description{
-Plot a CoxRFX model
+This plots a CoxRFX model
 }
 \author{
 mg14

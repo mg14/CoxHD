@@ -3,7 +3,7 @@
 \alias{summary.CoxRFX}
 \title{A summary method for CoxRFX models}
 \usage{
-summary.CoxRFX(object, ...)
+\method{summary}{CoxRFX}(object, ...)
 }
 \arguments{
 \item{object}{A CoxRFX model}

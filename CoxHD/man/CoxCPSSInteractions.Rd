@@ -12,7 +12,7 @@ CoxCPSSInteractions(X, surv, scope = 1:ncol(X), ...)
 
 \item{scope}{The set (indeces) of variables to test.}
 
-\item{...}{}
+\item{...}{Additional arguments passed to CoxCPSS.}
 }
 \value{
 CoxCPSS

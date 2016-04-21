@@ -7,9 +7,9 @@ This function creates all pairwise interaction (product) terms of two data.frame
 MakeInteractions(X, Y)
 }
 \arguments{
-\item{X}{}
+\item{X}{A data.frame or matrix for which product terms should be computed}
 
-\item{Y}{}
+\item{Y}{A data.frame or matrix for which product terms should be computed}
 }
 \value{
 A data.frame() of dimensions nrow(X) by (ncol(X) x ncol(Y))

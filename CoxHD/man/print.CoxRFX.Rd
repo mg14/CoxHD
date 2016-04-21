@@ -3,7 +3,7 @@
 \alias{print.CoxRFX}
 \title{Print method for CoxRFX}
 \usage{
-print.CoxRFX(x, ...)
+\method{print}{CoxRFX}(x, ...)
 }
 \arguments{
 \item{x}{CoxRFX}

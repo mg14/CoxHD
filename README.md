@@ -18,4 +18,6 @@ Stability selection is used for variable selection. Error control is possible ba
 
 Installation is easy using devtools::install_github()
 
-	> library(devtools); install_github("mg14/CoxHD/CoxHD")
+	> library(devtools)
+	> install_github("mg14/mg14")
+	> install_github("mg14/CoxHD/CoxHD")
